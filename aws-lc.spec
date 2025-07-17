@@ -1,6 +1,4 @@
-# Supported targets: el8, el9
 
-%define _prefix /opt/%{name}
 %define _docdir_fmt aws-lc
 
 %{!?make_verbose: %define make_verbose 0}
@@ -11,18 +9,24 @@
 
 %global source_date_epoch_from_changelog 0
 
-Name: aws-lc-0z
+Name: aws-lc
 Version: 1.55.0
-Release: 1%{?dist}.zenetys
+Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
 
+Patch: openssl-soname-version.patch
+
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
 BuildRequires: gcc-c++
+
+Provides: openssl = 3.2.2
+Replaces: openssl
+Obsoletes: openssl
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -30,7 +34,7 @@ AWS Cryptography team for AWS and their customers. It іs based on code
 from the Google BoringSSL project and the OpenSSL project.
 
 %prep
-%setup -n aws-lc-%{version}
+%setup -n aws-lc-%{version} -p
 
 %build
 %cmake \
@@ -66,12 +70,15 @@ echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
 %{_bindir}/c_rehash
 %{_bindir}/openssl
 
-%{_libdir}/libcrypto.so
-%{_libdir}/libssl.so
+%{_libdir}/libcrypto.so*
+%{_libdir}/libssl.so*
 
 %package devel
 Summary: AWS-LC development files from package %{name}
 Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Provides: openssl-devel = 3.2.2
+Replaces: openssl-devel
+Obsoletes: openssl-devel
 
 %description devel
 AWS-LC development files from package %{name}.
@@ -82,3 +89,6 @@ AWS-LC development files from package %{name}.
 %{_libdir}/pkgconfig/libssl.pc
 %{_libdir}/pkgconfig/openssl.pc
 %{_rpmmacrodir}/macros.%{name}
+
+
+%changelog
