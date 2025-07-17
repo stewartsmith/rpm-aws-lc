@@ -24,9 +24,8 @@ BuildRequires: cmake >= 3.0
 BuildRequires: gcc
 BuildRequires: gcc-c++
 
-Provides: openssl = 3.2.2
-Replaces: openssl
-Obsoletes: openssl
+Obsoletes: openssl < 1:4.0.0
+Provides: openssl = 1:4.0.0
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -34,7 +33,7 @@ AWS Cryptography team for AWS and their customers. It іs based on code
 from the Google BoringSSL project and the OpenSSL project.
 
 %prep
-%setup -n aws-lc-%{version} -p
+%autosetup -n aws-lc-%{version} -p1
 
 %build
 %cmake \
@@ -70,15 +69,21 @@ echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
 %{_bindir}/c_rehash
 %{_bindir}/openssl
 
+%package libs
+Summary: AWS-LC development files from package %{name}
+
+%description libs
+AWS-LC libraries
+
+%files libs
 %{_libdir}/libcrypto.so*
 %{_libdir}/libssl.so*
 
 %package devel
 Summary: AWS-LC development files from package %{name}
 Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
-Provides: openssl-devel = 3.2.2
-Replaces: openssl-devel
-Obsoletes: openssl-devel
+Obsoletes: openssl-devel <= 1:4.0.0
+Provides: openssl-devel = 1:4.0.0
 
 %description devel
 AWS-LC development files from package %{name}.
