@@ -1,0 +1,15 @@
+--- aws-lc-1.64.0/ssl/CMakeLists.txt	2025-11-11 06:54:25.000000000 -0800
++++ aws-lc-1.64.0-new/ssl/CMakeLists.txt	2025-11-17 11:14:41.934199624 -0800
+@@ -143,12 +143,3 @@
+     NAMESPACE AWS::
+     COMPONENT Development)
+ 
+-if(PERFORM_SONAME_BUILD)
+-  install(CODE "
+-set(TGT lib${SSL_LIB_NAME}.so.${ABI_VERSION})
+-set(LNK \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libssl.so)
+-message(STATUS \"Creating symlink: \${LNK} → \${TGT}\")
+-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \${TGT} \${LNK})
+-"
+-    COMPONENT Development)
+-endif()

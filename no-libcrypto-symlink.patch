@@ -1,0 +1,15 @@
+--- aws-lc-1.64.0/crypto/CMakeLists.txt	2025-11-11 06:54:25.000000000 -0800
++++ aws-lc-1.64.0-new/crypto/CMakeLists.txt	2025-11-17 11:14:45.364179242 -0800
+@@ -969,12 +969,3 @@
+     NAMESPACE AWS::
+     COMPONENT Development)
+ 
+-if(PERFORM_SONAME_BUILD)
+-install(CODE "
+-set(TGT lib${CRYPTO_LIB_NAME}.so.${ABI_VERSION})
+-set(LNK \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libcrypto.so)
+-message(STATUS \"Creating symlink: \${LNK} → \${TGT}\")
+-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \${TGT} \${LNK})
+-"
+-  COMPONENT Development)
+-endif()

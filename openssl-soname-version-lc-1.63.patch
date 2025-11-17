@@ -1,0 +1,31 @@
+diff -Nru orig-1.63/crypto/CMakeLists.txt aws-lc-1.63.0/crypto/CMakeLists.txt
+--- orig-1.63/crypto/CMakeLists.txt	2025-10-30 17:49:57.000000000 -0700
++++ aws-lc-1.63.0/crypto/CMakeLists.txt	2025-11-10 14:01:22.240932626 -0800
+@@ -624,7 +624,10 @@
+   if(NOT DISABLE_CPU_JITTER_ENTROPY)
+     target_sources(${arg_NAME} PRIVATE $<TARGET_OBJECTS:jitterentropy>)
+   endif()
+-
++  set_target_properties(${name} PROPERTIES
++    VERSION 4.0.0
++    SOVERSION 4
++    )
+   if(FIPS_DELOCATE OR FIPS_SHARED)
+     add_dependencies(${arg_NAME} bcm_o_target)
+   endif()
+diff -Nru orig-1.63/ssl/CMakeLists.txt aws-lc-1.63.0/ssl/CMakeLists.txt
+--- orig-1.63/ssl/CMakeLists.txt	2025-10-30 17:49:57.000000000 -0700
++++ aws-lc-1.63.0/ssl/CMakeLists.txt	2025-11-10 14:01:22.240932626 -0800
+@@ -42,7 +42,11 @@
+   tls13_client.cc
+   tls13_enc.cc
+   tls13_server.cc
+-)
++  )
++set_target_properties(ssl PROPERTIES
++  VERSION 4.0.0
++  SOVERSION 4
++  )
+ target_compile_definitions(ssl PRIVATE BORINGSSL_IMPLEMENTATION)
+ 
+ target_link_libraries(ssl crypto)
