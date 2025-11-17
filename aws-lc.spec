@@ -12,7 +12,7 @@
 
 Name: aws-lc
 Version: 1.64.0
-Release: 1%{?dist}
+Release: 3%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
@@ -24,10 +24,10 @@ BuildRequires: cmake >= 3.0
 BuildRequires: gcc
 BuildRequires: gcc-c++
 
-Patch: no-libssl-symlink.patch
-Patch: no-libcrypto-symlink.patch
-Patch: pkgconfig-libssl.patch
-Patch: pkgconfig-libcrypto.patch
+# We use git style patches
+BuildRequires: git
+
+Patch: 0001-Separate-out-the-OpenSSL-shim-from-AWS-LC.patch
 
 %if %{with provide_openssl}
 Obsoletes: openssl < 1:4.0.0
@@ -40,7 +40,7 @@ AWS Cryptography team for AWS and their customers. It іs based on code
 from the Google BoringSSL project and the OpenSSL project.
 
 %prep
-%autosetup -n aws-lc-%{version} -p1
+%autosetup -n aws-lc-%{version} -S git -p1
 
 %build
 %cmake \
@@ -83,26 +83,47 @@ Summary: AWS-LC development files from package %{name}
 AWS-LC libraries
 
 %files libs
-%{_libdir}/libcrypto-awslc.so*
-%{_libdir}/libssl-awslc.so*
+%{_libdir}/libcrypto-awslc.so.*
+%{_libdir}/libssl-awslc.so.*
 
 %package devel
 Summary: AWS-LC development files from package %{name}
 Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
-%if %{with provide_openssl}
-Obsoletes: openssl-devel <= 1:4.0.0
-Provides: openssl-devel = 1:4.0.0
-%endif
 
 %description devel
 AWS-LC development files from package %{name}.
 
 %files devel
+%{_includedir}/aws-lc/openssl
+%{_libdir}/pkgconfig/libcrypto-awslc.pc
+%{_libdir}/pkgconfig/libssl-awslc.pc
+%{_libdir}/pkgconfig/aws-lc.pc
+%{_rpmmacrodir}/macros.%{name}
+%{_libdir}/libcrypto-awslc.so
+%{_libdir}/libssl-awslc.so
+
+%package openssl-compat-devel
+Summary: OpenSSL compatible devel package using AWS-LC
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{name}-devel%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%if %{with provide_openssl}
+Obsoletes: openssl-devel <= 1:4.0.0
+Provides: openssl-devel = 1:4.0.0
+%endif
+
+%description openssl-compat-devel
+AWS-LC provides most of the OpenSSL APIs and this devel package provides
+the symlinks for headers and shared libraries to enable software to be
+built against AWS-LC without being modified to explicitly look for the
+AWS-LC development files.
+
+%files openssl-compat-devel
 %{_includedir}/openssl
 %{_libdir}/pkgconfig/libcrypto.pc
 %{_libdir}/pkgconfig/libssl.pc
 %{_libdir}/pkgconfig/openssl.pc
-%{_rpmmacrodir}/macros.%{name}
+%{_libdir}/libcrypto.so
+%{_libdir}/libssl.so
 
 
 %changelog

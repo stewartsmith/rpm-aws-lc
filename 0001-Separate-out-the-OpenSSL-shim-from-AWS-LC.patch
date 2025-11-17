@@ -1,0 +1,877 @@
+From 0c012d24669783cc3c415e16cf326578aed09455 Mon Sep 17 00:00:00 2001
+From: Stewart Smith <trawets@amazon.com>
+Date: Mon, 17 Nov 2025 15:02:19 -0800
+Subject: [PATCH] Separate out the OpenSSL shim from AWS-LC
+
+This enables aws-lc and openssl to be installed concurrently, including
+the devel packages. We keep a shim around that can be packaged as a
+separate compat RPM in order to build unmodified software against aws-lc
+rather than openssl.
+
+The headers are now include/aws-lc/openssl rather than include/openssl
+to clearly differentiate aws-lc from openssl, and enable a situation
+where both devel packages can be installed simultaneously.
+---
+ CMakeLists.txt                                | 61 ++++++++++++++-----
+ crypto/CMakeLists.txt                         | 11 +---
+ crypto/fipsmodule/CMakeLists.txt              | 12 ++--
+ include/{ => aws-lc}/openssl/aead.h           |  0
+ include/{ => aws-lc}/openssl/aes.h            |  0
+ include/{ => aws-lc}/openssl/arm_arch.h       |  0
+ include/{ => aws-lc}/openssl/asm_base.h       |  0
+ include/{ => aws-lc}/openssl/asn1.h           |  0
+ include/{ => aws-lc}/openssl/asn1_mac.h       |  0
+ include/{ => aws-lc}/openssl/asn1t.h          |  0
+ include/{ => aws-lc}/openssl/base.h           |  0
+ include/{ => aws-lc}/openssl/base.h.in        |  0
+ include/{ => aws-lc}/openssl/base64.h         |  0
+ include/{ => aws-lc}/openssl/bio.h            |  0
+ include/{ => aws-lc}/openssl/blake2.h         |  0
+ include/{ => aws-lc}/openssl/blowfish.h       |  0
+ include/{ => aws-lc}/openssl/bn.h             |  0
+ .../openssl/boringssl_prefix_symbols.h        |  0
+ .../openssl/boringssl_prefix_symbols_asm.h    |  0
+ .../openssl/boringssl_prefix_symbols_nasm.inc |  0
+ include/{ => aws-lc}/openssl/buf.h            |  0
+ include/{ => aws-lc}/openssl/buffer.h         |  0
+ include/{ => aws-lc}/openssl/bytestring.h     |  0
+ include/{ => aws-lc}/openssl/chacha.h         |  0
+ include/{ => aws-lc}/openssl/cipher.h         |  0
+ include/{ => aws-lc}/openssl/cmac.h           |  0
+ include/{ => aws-lc}/openssl/conf.h           |  0
+ include/{ => aws-lc}/openssl/cpu.h            |  0
+ include/{ => aws-lc}/openssl/crypto.h         |  0
+ include/{ => aws-lc}/openssl/ctrdrbg.h        |  0
+ include/{ => aws-lc}/openssl/curve25519.h     |  0
+ include/{ => aws-lc}/openssl/des.h            |  0
+ include/{ => aws-lc}/openssl/dh.h             |  0
+ include/{ => aws-lc}/openssl/digest.h         |  0
+ include/{ => aws-lc}/openssl/dsa.h            |  0
+ include/{ => aws-lc}/openssl/dtls1.h          |  0
+ include/{ => aws-lc}/openssl/e_os2.h          |  0
+ include/{ => aws-lc}/openssl/ec.h             |  0
+ include/{ => aws-lc}/openssl/ec_key.h         |  0
+ include/{ => aws-lc}/openssl/ecdh.h           |  0
+ include/{ => aws-lc}/openssl/ecdsa.h          |  0
+ include/{ => aws-lc}/openssl/engine.h         |  0
+ include/{ => aws-lc}/openssl/err.h            |  0
+ include/{ => aws-lc}/openssl/evp.h            |  0
+ include/{ => aws-lc}/openssl/evp_errors.h     |  0
+ include/{ => aws-lc}/openssl/ex_data.h        |  0
+ .../experimental/kem_deterministic_api.h      |  0
+ include/{ => aws-lc}/openssl/hkdf.h           |  0
+ include/{ => aws-lc}/openssl/hmac.h           |  0
+ include/{ => aws-lc}/openssl/hpke.h           |  0
+ include/{ => aws-lc}/openssl/hrss.h           |  0
+ include/{ => aws-lc}/openssl/is_awslc.h       |  0
+ include/{ => aws-lc}/openssl/kdf.h            |  0
+ include/{ => aws-lc}/openssl/lhash.h          |  0
+ include/{ => aws-lc}/openssl/md4.h            |  0
+ include/{ => aws-lc}/openssl/md5.h            |  0
+ include/{ => aws-lc}/openssl/mem.h            |  0
+ include/{ => aws-lc}/openssl/nid.h            |  0
+ include/{ => aws-lc}/openssl/obj.h            |  0
+ include/{ => aws-lc}/openssl/obj_mac.h        |  0
+ include/{ => aws-lc}/openssl/objects.h        |  0
+ include/{ => aws-lc}/openssl/ocsp.h           |  0
+ include/{ => aws-lc}/openssl/opensslconf.h    |  0
+ include/{ => aws-lc}/openssl/opensslv.h       |  0
+ include/{ => aws-lc}/openssl/opensslv.h.in    |  0
+ include/{ => aws-lc}/openssl/ossl_typ.h       |  0
+ include/{ => aws-lc}/openssl/pem.h            |  0
+ include/{ => aws-lc}/openssl/pkcs12.h         |  0
+ include/{ => aws-lc}/openssl/pkcs7.h          |  0
+ include/{ => aws-lc}/openssl/pkcs8.h          |  0
+ include/{ => aws-lc}/openssl/poly1305.h       |  0
+ include/{ => aws-lc}/openssl/pool.h           |  0
+ include/{ => aws-lc}/openssl/posix_time.h     |  0
+ include/{ => aws-lc}/openssl/rand.h           |  0
+ include/{ => aws-lc}/openssl/rc4.h            |  0
+ include/{ => aws-lc}/openssl/ripemd.h         |  0
+ include/{ => aws-lc}/openssl/rsa.h            |  0
+ include/{ => aws-lc}/openssl/safestack.h      |  0
+ .../{ => aws-lc}/openssl/service_indicator.h  |  0
+ include/{ => aws-lc}/openssl/sha.h            |  0
+ include/{ => aws-lc}/openssl/siphash.h        |  0
+ include/{ => aws-lc}/openssl/span.h           |  0
+ include/{ => aws-lc}/openssl/sshkdf.h         |  0
+ include/{ => aws-lc}/openssl/ssl.h            |  0
+ include/{ => aws-lc}/openssl/ssl3.h           |  0
+ include/{ => aws-lc}/openssl/stack.h          |  0
+ include/{ => aws-lc}/openssl/target.h         |  0
+ include/{ => aws-lc}/openssl/thread.h         |  0
+ include/{ => aws-lc}/openssl/time.h           |  0
+ include/{ => aws-lc}/openssl/tls1.h           |  0
+ include/{ => aws-lc}/openssl/trust_token.h    |  0
+ include/{ => aws-lc}/openssl/type_check.h     |  0
+ include/{ => aws-lc}/openssl/ui.h             |  0
+ include/{ => aws-lc}/openssl/x509.h           |  0
+ include/{ => aws-lc}/openssl/x509_vfy.h       |  0
+ include/{ => aws-lc}/openssl/x509v3.h         |  0
+ include/{ => aws-lc}/openssl/x509v3_errors.h  |  0
+ pkgconfig/aws-lc.pc.in                        |  8 +++
+ pkgconfig/libcrypto-awslc.pc.in               |  9 +++
+ pkgconfig/libcrypto.pc.in                     |  6 +-
+ pkgconfig/libssl-awslc.pc.in                  | 10 +++
+ pkgconfig/libssl.pc.in                        |  6 +-
+ ssl/CMakeLists.txt                            | 11 +---
+ 103 files changed, 88 insertions(+), 46 deletions(-)
+ rename include/{ => aws-lc}/openssl/aead.h (100%)
+ rename include/{ => aws-lc}/openssl/aes.h (100%)
+ rename include/{ => aws-lc}/openssl/arm_arch.h (100%)
+ rename include/{ => aws-lc}/openssl/asm_base.h (100%)
+ rename include/{ => aws-lc}/openssl/asn1.h (100%)
+ rename include/{ => aws-lc}/openssl/asn1_mac.h (100%)
+ rename include/{ => aws-lc}/openssl/asn1t.h (100%)
+ rename include/{ => aws-lc}/openssl/base.h (100%)
+ rename include/{ => aws-lc}/openssl/base.h.in (100%)
+ rename include/{ => aws-lc}/openssl/base64.h (100%)
+ rename include/{ => aws-lc}/openssl/bio.h (100%)
+ rename include/{ => aws-lc}/openssl/blake2.h (100%)
+ rename include/{ => aws-lc}/openssl/blowfish.h (100%)
+ rename include/{ => aws-lc}/openssl/bn.h (100%)
+ rename include/{ => aws-lc}/openssl/boringssl_prefix_symbols.h (100%)
+ rename include/{ => aws-lc}/openssl/boringssl_prefix_symbols_asm.h (100%)
+ rename include/{ => aws-lc}/openssl/boringssl_prefix_symbols_nasm.inc (100%)
+ rename include/{ => aws-lc}/openssl/buf.h (100%)
+ rename include/{ => aws-lc}/openssl/buffer.h (100%)
+ rename include/{ => aws-lc}/openssl/bytestring.h (100%)
+ rename include/{ => aws-lc}/openssl/chacha.h (100%)
+ rename include/{ => aws-lc}/openssl/cipher.h (100%)
+ rename include/{ => aws-lc}/openssl/cmac.h (100%)
+ rename include/{ => aws-lc}/openssl/conf.h (100%)
+ rename include/{ => aws-lc}/openssl/cpu.h (100%)
+ rename include/{ => aws-lc}/openssl/crypto.h (100%)
+ rename include/{ => aws-lc}/openssl/ctrdrbg.h (100%)
+ rename include/{ => aws-lc}/openssl/curve25519.h (100%)
+ rename include/{ => aws-lc}/openssl/des.h (100%)
+ rename include/{ => aws-lc}/openssl/dh.h (100%)
+ rename include/{ => aws-lc}/openssl/digest.h (100%)
+ rename include/{ => aws-lc}/openssl/dsa.h (100%)
+ rename include/{ => aws-lc}/openssl/dtls1.h (100%)
+ rename include/{ => aws-lc}/openssl/e_os2.h (100%)
+ rename include/{ => aws-lc}/openssl/ec.h (100%)
+ rename include/{ => aws-lc}/openssl/ec_key.h (100%)
+ rename include/{ => aws-lc}/openssl/ecdh.h (100%)
+ rename include/{ => aws-lc}/openssl/ecdsa.h (100%)
+ rename include/{ => aws-lc}/openssl/engine.h (100%)
+ rename include/{ => aws-lc}/openssl/err.h (100%)
+ rename include/{ => aws-lc}/openssl/evp.h (100%)
+ rename include/{ => aws-lc}/openssl/evp_errors.h (100%)
+ rename include/{ => aws-lc}/openssl/ex_data.h (100%)
+ rename include/{ => aws-lc}/openssl/experimental/kem_deterministic_api.h (100%)
+ rename include/{ => aws-lc}/openssl/hkdf.h (100%)
+ rename include/{ => aws-lc}/openssl/hmac.h (100%)
+ rename include/{ => aws-lc}/openssl/hpke.h (100%)
+ rename include/{ => aws-lc}/openssl/hrss.h (100%)
+ rename include/{ => aws-lc}/openssl/is_awslc.h (100%)
+ rename include/{ => aws-lc}/openssl/kdf.h (100%)
+ rename include/{ => aws-lc}/openssl/lhash.h (100%)
+ rename include/{ => aws-lc}/openssl/md4.h (100%)
+ rename include/{ => aws-lc}/openssl/md5.h (100%)
+ rename include/{ => aws-lc}/openssl/mem.h (100%)
+ rename include/{ => aws-lc}/openssl/nid.h (100%)
+ rename include/{ => aws-lc}/openssl/obj.h (100%)
+ rename include/{ => aws-lc}/openssl/obj_mac.h (100%)
+ rename include/{ => aws-lc}/openssl/objects.h (100%)
+ rename include/{ => aws-lc}/openssl/ocsp.h (100%)
+ rename include/{ => aws-lc}/openssl/opensslconf.h (100%)
+ rename include/{ => aws-lc}/openssl/opensslv.h (100%)
+ rename include/{ => aws-lc}/openssl/opensslv.h.in (100%)
+ rename include/{ => aws-lc}/openssl/ossl_typ.h (100%)
+ rename include/{ => aws-lc}/openssl/pem.h (100%)
+ rename include/{ => aws-lc}/openssl/pkcs12.h (100%)
+ rename include/{ => aws-lc}/openssl/pkcs7.h (100%)
+ rename include/{ => aws-lc}/openssl/pkcs8.h (100%)
+ rename include/{ => aws-lc}/openssl/poly1305.h (100%)
+ rename include/{ => aws-lc}/openssl/pool.h (100%)
+ rename include/{ => aws-lc}/openssl/posix_time.h (100%)
+ rename include/{ => aws-lc}/openssl/rand.h (100%)
+ rename include/{ => aws-lc}/openssl/rc4.h (100%)
+ rename include/{ => aws-lc}/openssl/ripemd.h (100%)
+ rename include/{ => aws-lc}/openssl/rsa.h (100%)
+ rename include/{ => aws-lc}/openssl/safestack.h (100%)
+ rename include/{ => aws-lc}/openssl/service_indicator.h (100%)
+ rename include/{ => aws-lc}/openssl/sha.h (100%)
+ rename include/{ => aws-lc}/openssl/siphash.h (100%)
+ rename include/{ => aws-lc}/openssl/span.h (100%)
+ rename include/{ => aws-lc}/openssl/sshkdf.h (100%)
+ rename include/{ => aws-lc}/openssl/ssl.h (100%)
+ rename include/{ => aws-lc}/openssl/ssl3.h (100%)
+ rename include/{ => aws-lc}/openssl/stack.h (100%)
+ rename include/{ => aws-lc}/openssl/target.h (100%)
+ rename include/{ => aws-lc}/openssl/thread.h (100%)
+ rename include/{ => aws-lc}/openssl/time.h (100%)
+ rename include/{ => aws-lc}/openssl/tls1.h (100%)
+ rename include/{ => aws-lc}/openssl/trust_token.h (100%)
+ rename include/{ => aws-lc}/openssl/type_check.h (100%)
+ rename include/{ => aws-lc}/openssl/ui.h (100%)
+ rename include/{ => aws-lc}/openssl/x509.h (100%)
+ rename include/{ => aws-lc}/openssl/x509_vfy.h (100%)
+ rename include/{ => aws-lc}/openssl/x509v3.h (100%)
+ rename include/{ => aws-lc}/openssl/x509v3_errors.h (100%)
+ create mode 100644 pkgconfig/aws-lc.pc.in
+ create mode 100644 pkgconfig/libcrypto-awslc.pc.in
+ create mode 100644 pkgconfig/libssl-awslc.pc.in
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 13aed514c..75b142994 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -80,7 +80,9 @@ function(target_add_awslc_include_paths)
+   add_dependencies(${arg_TARGET} boringssl_prefix_symbols)
+   target_include_directories(${arg_TARGET} BEFORE ${arg_SCOPE}
+     $<$<BOOL:INCLUDE_PREFIX_HEADERS>:$<BUILD_INTERFACE:${AWSLC_BINARY_DIR}/symbol_prefix_include>>
++    $<BUILD_INTERFACE:${AWSLC_SOURCE_DIR}/include/aws-lc>
+     $<BUILD_INTERFACE:${AWSLC_SOURCE_DIR}/include>
++    $<INSTALL_INTERFACE:include/aws-lc>
+     $<INSTALL_INTERFACE:include>)
+ endfunction()
+ 
+@@ -89,6 +91,7 @@ option(BUILD_LIBSSL "Build libssl for AWS-LC" ON)
+ option(BUILD_TOOL "Build bssl tool for AWS-LC" ON)
+ option(DISABLE_PERL "Disable Perl for AWS-LC" OFF)
+ option(DISABLE_GO "Disable Go for AWS-LC" OFF)
++option(ENABLE_OPENSSL_SHIM "Enable OpenSSL compatibility shim (pkgconfig files and symlinks)" ON)
+ # Keeping this flag for now, for compatibility with existing build configs.
+ option(ENABLE_FIPS_ENTROPY_CPU_JITTER "Enable FIPS entropy source: CPU Jitter" OFF)
+ option(ENABLE_DATA_INDEPENDENT_TIMING "Enable automatic setting/resetting Data-Independent Timing
+@@ -219,8 +222,8 @@ elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+   set(CMAKE_INSTALL_BINDIR "bin")
+ endif()
+ 
+-install(DIRECTORY include/openssl
+-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++install(DIRECTORY include/aws-lc/openssl
++        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aws-lc
+         COMPONENT Development
+         PATTERN boringssl_prefix_symbols.h EXCLUDE
+         PATTERN boringssl_prefix_symbols_asm.h EXCLUDE
+@@ -321,7 +324,7 @@ if(BORINGSSL_PREFIX AND BORINGSSL_PREFIX_SYMBOLS AND GO_EXECUTABLE)
+             symbol_prefix_include/openssl/boringssl_prefix_symbols_nasm.inc)
+ 
+   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/symbol_prefix_include/openssl
+-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aws-lc
+           COMPONENT Development
+   )
+ elseif(BORINGSSL_PREFIX AND BORINGSSL_PREFIX_HEADERS)
+@@ -341,7 +344,7 @@ elseif(BORINGSSL_PREFIX AND BORINGSSL_PREFIX_HEADERS)
+   add_custom_target(boringssl_prefix_symbols)
+ 
+   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/symbol_prefix_include/openssl
+-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aws-lc
+           COMPONENT Development
+   )
+ elseif(BORINGSSL_PREFIX OR BORINGSSL_PREFIX_SYMBOLS)
+@@ -351,8 +354,8 @@ elseif((BORINGSSL_PREFIX AND BORINGSSL_PREFIX_SYMBOLS) AND NOT GO_EXECUTABLE)
+ else()
+   add_custom_target(boringssl_prefix_symbols)
+ 
+-  install(DIRECTORY include/openssl
+-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++  install(DIRECTORY include/aws-lc/openssl
++          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/aws-lc
+           COMPONENT Development
+           FILES_MATCHING
+           PATTERN boringssl_prefix_symbols.h
+@@ -1359,25 +1362,55 @@ if(NOT MSVC AND NOT CLANG AND NOT GCC)
+   message(STATUS "Alternative compiler '${CMAKE_C_COMPILER_ID}' detected. Not all flags may be set, check final options with 'cmake --build . -- VERBOSE=1'")
+ endif()
+ 
+-# AWS-LC may be installed in a non-standard prefix. If OpenSSL exists in the standard path,
+-# the downstream integration may build with the system's OpenSSL version instead.
+-# Consider adjusting the PKG_CONFIG_PATH environment to get around this.
+-file(GLOB OPENSSL_PKGCONFIGS "pkgconfig/*.pc.in")
+-
++# Configure pkgconfig files
+ include(cmake/JoinPaths.cmake)
+ join_paths(libdir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_LIBDIR}")
+ join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+ 
+-foreach(in_file ${OPENSSL_PKGCONFIGS})
++# Always install AWS-LC native pkgconfig files
++file(GLOB AWSLC_PKGCONFIGS "pkgconfig/aws-lc.pc.in" "pkgconfig/libssl-awslc.pc.in" "pkgconfig/libcrypto-awslc.pc.in")
++foreach(in_file ${AWSLC_PKGCONFIGS})
+   file(RELATIVE_PATH in_file ${AWSLC_SOURCE_DIR} ${in_file})
+   string(REPLACE ".in" "" pc_file ${in_file})
+   configure_file(${in_file} ${CMAKE_CURRENT_BINARY_DIR}/${pc_file} @ONLY)
+   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pc_file} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+ endforeach()
+ 
++# Optionally install OpenSSL compatibility pkgconfig files
++if(ENABLE_OPENSSL_SHIM)
++  file(GLOB OPENSSL_PKGCONFIGS "pkgconfig/openssl.pc.in" "pkgconfig/libssl.pc.in" "pkgconfig/libcrypto.pc.in")
++  foreach(in_file ${OPENSSL_PKGCONFIGS})
++    file(RELATIVE_PATH in_file ${AWSLC_SOURCE_DIR} ${in_file})
++    string(REPLACE ".in" "" pc_file ${in_file})
++    configure_file(${in_file} ${CMAKE_CURRENT_BINARY_DIR}/${pc_file} @ONLY)
++    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${pc_file} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
++  endforeach()
++  
++  # Create OpenSSL compatibility symlinks
++  if(BUILD_SHARED_LIBS)
++    if(PERFORM_SONAME_BUILD)
++      # When SONAME build is enabled, libraries have -awslc suffix
++      install(CODE "
++        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink 
++          lib${CRYPTO_LIB_NAME}.so \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libcrypto.so\")
++        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink 
++          lib${SSL_LIB_NAME}.so \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libssl.so\")
++      ")
++    else()
++      # When SONAME build is disabled, libraries are already named libcrypto.so/libssl.so
++      # so no symlinks needed for libraries, but we still need the include symlink
++    endif()
++    # Always create the include directory symlink for OpenSSL compatibility
++    install(CODE "
++      execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink 
++        aws-lc/openssl \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/openssl\")
++    ")
++  endif()
++endif()
++
+ if(ENABLE_SOURCE_MODIFICATION)
+-  configure_file(include/openssl/base.h.in ${AWSLC_SOURCE_DIR}/include/openssl/base.h @ONLY)
+-  configure_file(include/openssl/opensslv.h.in ${AWSLC_SOURCE_DIR}/include/openssl/opensslv.h @ONLY)
++  configure_file(include/aws-lc/openssl/base.h.in ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/base.h @ONLY)
++  configure_file(include/aws-lc/openssl/opensslv.h.in ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/opensslv.h @ONLY)
+   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/util/check-linkage.sh.in")
+     configure_file(util/check-linkage.sh.in check-linkage.sh @ONLY)
+   endif()
+diff --git a/crypto/CMakeLists.txt b/crypto/CMakeLists.txt
+index 8755ea5e9..505b01dc3 100644
+--- a/crypto/CMakeLists.txt
++++ b/crypto/CMakeLists.txt
+@@ -944,7 +944,7 @@ install(TARGETS crypto
+         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         LIBRARY
+           DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-          NAMELINK_SKIP)
++          NAMELINK_COMPONENT Development)
+ 
+ if(MSVC AND CMAKE_BUILD_TYPE_LOWER MATCHES "relwithdebinfo" AND FIPS)
+   install (FILES $<TARGET_FILE_DIR:crypto>/crypto.pdb DESTINATION ${CMAKE_INSTALL_LIBDIR})
+@@ -969,12 +969,3 @@ install(EXPORT crypto-targets
+     NAMESPACE AWS::
+     COMPONENT Development)
+ 
+-if(PERFORM_SONAME_BUILD)
+-install(CODE "
+-set(TGT lib${CRYPTO_LIB_NAME}.so.${ABI_VERSION})
+-set(LNK \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libcrypto.so)
+-message(STATUS \"Creating symlink: \${LNK} → \${TGT}\")
+-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \${TGT} \${LNK})
+-"
+-  COMPONENT Development)
+-endif()
+diff --git a/crypto/fipsmodule/CMakeLists.txt b/crypto/fipsmodule/CMakeLists.txt
+index a61919e70..87a2da743 100644
+--- a/crypto/fipsmodule/CMakeLists.txt
++++ b/crypto/fipsmodule/CMakeLists.txt
+@@ -453,17 +453,17 @@ if(FIPS_DELOCATE)
+     -cc-flags "${TARGET} ${CMAKE_ASM_FLAGS} -DS2N_BN_HIDE_SYMBOLS"
+     -s2n-bignum-include "${S2N_BIGNUM_INCLUDE_DIR}"
+     ${DELOCATE_EXTRA_ARGS}
+-    ${AWSLC_SOURCE_DIR}/include/openssl/arm_arch.h
+-    ${AWSLC_SOURCE_DIR}/include/openssl/asm_base.h
+-    ${AWSLC_SOURCE_DIR}/include/openssl/target.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/arm_arch.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/asm_base.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/target.h
+     ${BCM_ASM_SOURCES}
+     DEPENDS
+     bcm_c_generated_asm
+     delocate
+     ${BCM_ASM_SOURCES}
+-    ${AWSLC_SOURCE_DIR}/include/openssl/arm_arch.h
+-    ${AWSLC_SOURCE_DIR}/include/openssl/asm_base.h
+-    ${AWSLC_SOURCE_DIR}/include/openssl/target.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/arm_arch.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/asm_base.h
++    ${AWSLC_SOURCE_DIR}/include/aws-lc/openssl/target.h
+     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+   )
+ 
+diff --git a/include/openssl/aead.h b/include/aws-lc/openssl/aead.h
+similarity index 100%
+rename from include/openssl/aead.h
+rename to include/aws-lc/openssl/aead.h
+diff --git a/include/openssl/aes.h b/include/aws-lc/openssl/aes.h
+similarity index 100%
+rename from include/openssl/aes.h
+rename to include/aws-lc/openssl/aes.h
+diff --git a/include/openssl/arm_arch.h b/include/aws-lc/openssl/arm_arch.h
+similarity index 100%
+rename from include/openssl/arm_arch.h
+rename to include/aws-lc/openssl/arm_arch.h
+diff --git a/include/openssl/asm_base.h b/include/aws-lc/openssl/asm_base.h
+similarity index 100%
+rename from include/openssl/asm_base.h
+rename to include/aws-lc/openssl/asm_base.h
+diff --git a/include/openssl/asn1.h b/include/aws-lc/openssl/asn1.h
+similarity index 100%
+rename from include/openssl/asn1.h
+rename to include/aws-lc/openssl/asn1.h
+diff --git a/include/openssl/asn1_mac.h b/include/aws-lc/openssl/asn1_mac.h
+similarity index 100%
+rename from include/openssl/asn1_mac.h
+rename to include/aws-lc/openssl/asn1_mac.h
+diff --git a/include/openssl/asn1t.h b/include/aws-lc/openssl/asn1t.h
+similarity index 100%
+rename from include/openssl/asn1t.h
+rename to include/aws-lc/openssl/asn1t.h
+diff --git a/include/openssl/base.h b/include/aws-lc/openssl/base.h
+similarity index 100%
+rename from include/openssl/base.h
+rename to include/aws-lc/openssl/base.h
+diff --git a/include/openssl/base.h.in b/include/aws-lc/openssl/base.h.in
+similarity index 100%
+rename from include/openssl/base.h.in
+rename to include/aws-lc/openssl/base.h.in
+diff --git a/include/openssl/base64.h b/include/aws-lc/openssl/base64.h
+similarity index 100%
+rename from include/openssl/base64.h
+rename to include/aws-lc/openssl/base64.h
+diff --git a/include/openssl/bio.h b/include/aws-lc/openssl/bio.h
+similarity index 100%
+rename from include/openssl/bio.h
+rename to include/aws-lc/openssl/bio.h
+diff --git a/include/openssl/blake2.h b/include/aws-lc/openssl/blake2.h
+similarity index 100%
+rename from include/openssl/blake2.h
+rename to include/aws-lc/openssl/blake2.h
+diff --git a/include/openssl/blowfish.h b/include/aws-lc/openssl/blowfish.h
+similarity index 100%
+rename from include/openssl/blowfish.h
+rename to include/aws-lc/openssl/blowfish.h
+diff --git a/include/openssl/bn.h b/include/aws-lc/openssl/bn.h
+similarity index 100%
+rename from include/openssl/bn.h
+rename to include/aws-lc/openssl/bn.h
+diff --git a/include/openssl/boringssl_prefix_symbols.h b/include/aws-lc/openssl/boringssl_prefix_symbols.h
+similarity index 100%
+rename from include/openssl/boringssl_prefix_symbols.h
+rename to include/aws-lc/openssl/boringssl_prefix_symbols.h
+diff --git a/include/openssl/boringssl_prefix_symbols_asm.h b/include/aws-lc/openssl/boringssl_prefix_symbols_asm.h
+similarity index 100%
+rename from include/openssl/boringssl_prefix_symbols_asm.h
+rename to include/aws-lc/openssl/boringssl_prefix_symbols_asm.h
+diff --git a/include/openssl/boringssl_prefix_symbols_nasm.inc b/include/aws-lc/openssl/boringssl_prefix_symbols_nasm.inc
+similarity index 100%
+rename from include/openssl/boringssl_prefix_symbols_nasm.inc
+rename to include/aws-lc/openssl/boringssl_prefix_symbols_nasm.inc
+diff --git a/include/openssl/buf.h b/include/aws-lc/openssl/buf.h
+similarity index 100%
+rename from include/openssl/buf.h
+rename to include/aws-lc/openssl/buf.h
+diff --git a/include/openssl/buffer.h b/include/aws-lc/openssl/buffer.h
+similarity index 100%
+rename from include/openssl/buffer.h
+rename to include/aws-lc/openssl/buffer.h
+diff --git a/include/openssl/bytestring.h b/include/aws-lc/openssl/bytestring.h
+similarity index 100%
+rename from include/openssl/bytestring.h
+rename to include/aws-lc/openssl/bytestring.h
+diff --git a/include/openssl/chacha.h b/include/aws-lc/openssl/chacha.h
+similarity index 100%
+rename from include/openssl/chacha.h
+rename to include/aws-lc/openssl/chacha.h
+diff --git a/include/openssl/cipher.h b/include/aws-lc/openssl/cipher.h
+similarity index 100%
+rename from include/openssl/cipher.h
+rename to include/aws-lc/openssl/cipher.h
+diff --git a/include/openssl/cmac.h b/include/aws-lc/openssl/cmac.h
+similarity index 100%
+rename from include/openssl/cmac.h
+rename to include/aws-lc/openssl/cmac.h
+diff --git a/include/openssl/conf.h b/include/aws-lc/openssl/conf.h
+similarity index 100%
+rename from include/openssl/conf.h
+rename to include/aws-lc/openssl/conf.h
+diff --git a/include/openssl/cpu.h b/include/aws-lc/openssl/cpu.h
+similarity index 100%
+rename from include/openssl/cpu.h
+rename to include/aws-lc/openssl/cpu.h
+diff --git a/include/openssl/crypto.h b/include/aws-lc/openssl/crypto.h
+similarity index 100%
+rename from include/openssl/crypto.h
+rename to include/aws-lc/openssl/crypto.h
+diff --git a/include/openssl/ctrdrbg.h b/include/aws-lc/openssl/ctrdrbg.h
+similarity index 100%
+rename from include/openssl/ctrdrbg.h
+rename to include/aws-lc/openssl/ctrdrbg.h
+diff --git a/include/openssl/curve25519.h b/include/aws-lc/openssl/curve25519.h
+similarity index 100%
+rename from include/openssl/curve25519.h
+rename to include/aws-lc/openssl/curve25519.h
+diff --git a/include/openssl/des.h b/include/aws-lc/openssl/des.h
+similarity index 100%
+rename from include/openssl/des.h
+rename to include/aws-lc/openssl/des.h
+diff --git a/include/openssl/dh.h b/include/aws-lc/openssl/dh.h
+similarity index 100%
+rename from include/openssl/dh.h
+rename to include/aws-lc/openssl/dh.h
+diff --git a/include/openssl/digest.h b/include/aws-lc/openssl/digest.h
+similarity index 100%
+rename from include/openssl/digest.h
+rename to include/aws-lc/openssl/digest.h
+diff --git a/include/openssl/dsa.h b/include/aws-lc/openssl/dsa.h
+similarity index 100%
+rename from include/openssl/dsa.h
+rename to include/aws-lc/openssl/dsa.h
+diff --git a/include/openssl/dtls1.h b/include/aws-lc/openssl/dtls1.h
+similarity index 100%
+rename from include/openssl/dtls1.h
+rename to include/aws-lc/openssl/dtls1.h
+diff --git a/include/openssl/e_os2.h b/include/aws-lc/openssl/e_os2.h
+similarity index 100%
+rename from include/openssl/e_os2.h
+rename to include/aws-lc/openssl/e_os2.h
+diff --git a/include/openssl/ec.h b/include/aws-lc/openssl/ec.h
+similarity index 100%
+rename from include/openssl/ec.h
+rename to include/aws-lc/openssl/ec.h
+diff --git a/include/openssl/ec_key.h b/include/aws-lc/openssl/ec_key.h
+similarity index 100%
+rename from include/openssl/ec_key.h
+rename to include/aws-lc/openssl/ec_key.h
+diff --git a/include/openssl/ecdh.h b/include/aws-lc/openssl/ecdh.h
+similarity index 100%
+rename from include/openssl/ecdh.h
+rename to include/aws-lc/openssl/ecdh.h
+diff --git a/include/openssl/ecdsa.h b/include/aws-lc/openssl/ecdsa.h
+similarity index 100%
+rename from include/openssl/ecdsa.h
+rename to include/aws-lc/openssl/ecdsa.h
+diff --git a/include/openssl/engine.h b/include/aws-lc/openssl/engine.h
+similarity index 100%
+rename from include/openssl/engine.h
+rename to include/aws-lc/openssl/engine.h
+diff --git a/include/openssl/err.h b/include/aws-lc/openssl/err.h
+similarity index 100%
+rename from include/openssl/err.h
+rename to include/aws-lc/openssl/err.h
+diff --git a/include/openssl/evp.h b/include/aws-lc/openssl/evp.h
+similarity index 100%
+rename from include/openssl/evp.h
+rename to include/aws-lc/openssl/evp.h
+diff --git a/include/openssl/evp_errors.h b/include/aws-lc/openssl/evp_errors.h
+similarity index 100%
+rename from include/openssl/evp_errors.h
+rename to include/aws-lc/openssl/evp_errors.h
+diff --git a/include/openssl/ex_data.h b/include/aws-lc/openssl/ex_data.h
+similarity index 100%
+rename from include/openssl/ex_data.h
+rename to include/aws-lc/openssl/ex_data.h
+diff --git a/include/openssl/experimental/kem_deterministic_api.h b/include/aws-lc/openssl/experimental/kem_deterministic_api.h
+similarity index 100%
+rename from include/openssl/experimental/kem_deterministic_api.h
+rename to include/aws-lc/openssl/experimental/kem_deterministic_api.h
+diff --git a/include/openssl/hkdf.h b/include/aws-lc/openssl/hkdf.h
+similarity index 100%
+rename from include/openssl/hkdf.h
+rename to include/aws-lc/openssl/hkdf.h
+diff --git a/include/openssl/hmac.h b/include/aws-lc/openssl/hmac.h
+similarity index 100%
+rename from include/openssl/hmac.h
+rename to include/aws-lc/openssl/hmac.h
+diff --git a/include/openssl/hpke.h b/include/aws-lc/openssl/hpke.h
+similarity index 100%
+rename from include/openssl/hpke.h
+rename to include/aws-lc/openssl/hpke.h
+diff --git a/include/openssl/hrss.h b/include/aws-lc/openssl/hrss.h
+similarity index 100%
+rename from include/openssl/hrss.h
+rename to include/aws-lc/openssl/hrss.h
+diff --git a/include/openssl/is_awslc.h b/include/aws-lc/openssl/is_awslc.h
+similarity index 100%
+rename from include/openssl/is_awslc.h
+rename to include/aws-lc/openssl/is_awslc.h
+diff --git a/include/openssl/kdf.h b/include/aws-lc/openssl/kdf.h
+similarity index 100%
+rename from include/openssl/kdf.h
+rename to include/aws-lc/openssl/kdf.h
+diff --git a/include/openssl/lhash.h b/include/aws-lc/openssl/lhash.h
+similarity index 100%
+rename from include/openssl/lhash.h
+rename to include/aws-lc/openssl/lhash.h
+diff --git a/include/openssl/md4.h b/include/aws-lc/openssl/md4.h
+similarity index 100%
+rename from include/openssl/md4.h
+rename to include/aws-lc/openssl/md4.h
+diff --git a/include/openssl/md5.h b/include/aws-lc/openssl/md5.h
+similarity index 100%
+rename from include/openssl/md5.h
+rename to include/aws-lc/openssl/md5.h
+diff --git a/include/openssl/mem.h b/include/aws-lc/openssl/mem.h
+similarity index 100%
+rename from include/openssl/mem.h
+rename to include/aws-lc/openssl/mem.h
+diff --git a/include/openssl/nid.h b/include/aws-lc/openssl/nid.h
+similarity index 100%
+rename from include/openssl/nid.h
+rename to include/aws-lc/openssl/nid.h
+diff --git a/include/openssl/obj.h b/include/aws-lc/openssl/obj.h
+similarity index 100%
+rename from include/openssl/obj.h
+rename to include/aws-lc/openssl/obj.h
+diff --git a/include/openssl/obj_mac.h b/include/aws-lc/openssl/obj_mac.h
+similarity index 100%
+rename from include/openssl/obj_mac.h
+rename to include/aws-lc/openssl/obj_mac.h
+diff --git a/include/openssl/objects.h b/include/aws-lc/openssl/objects.h
+similarity index 100%
+rename from include/openssl/objects.h
+rename to include/aws-lc/openssl/objects.h
+diff --git a/include/openssl/ocsp.h b/include/aws-lc/openssl/ocsp.h
+similarity index 100%
+rename from include/openssl/ocsp.h
+rename to include/aws-lc/openssl/ocsp.h
+diff --git a/include/openssl/opensslconf.h b/include/aws-lc/openssl/opensslconf.h
+similarity index 100%
+rename from include/openssl/opensslconf.h
+rename to include/aws-lc/openssl/opensslconf.h
+diff --git a/include/openssl/opensslv.h b/include/aws-lc/openssl/opensslv.h
+similarity index 100%
+rename from include/openssl/opensslv.h
+rename to include/aws-lc/openssl/opensslv.h
+diff --git a/include/openssl/opensslv.h.in b/include/aws-lc/openssl/opensslv.h.in
+similarity index 100%
+rename from include/openssl/opensslv.h.in
+rename to include/aws-lc/openssl/opensslv.h.in
+diff --git a/include/openssl/ossl_typ.h b/include/aws-lc/openssl/ossl_typ.h
+similarity index 100%
+rename from include/openssl/ossl_typ.h
+rename to include/aws-lc/openssl/ossl_typ.h
+diff --git a/include/openssl/pem.h b/include/aws-lc/openssl/pem.h
+similarity index 100%
+rename from include/openssl/pem.h
+rename to include/aws-lc/openssl/pem.h
+diff --git a/include/openssl/pkcs12.h b/include/aws-lc/openssl/pkcs12.h
+similarity index 100%
+rename from include/openssl/pkcs12.h
+rename to include/aws-lc/openssl/pkcs12.h
+diff --git a/include/openssl/pkcs7.h b/include/aws-lc/openssl/pkcs7.h
+similarity index 100%
+rename from include/openssl/pkcs7.h
+rename to include/aws-lc/openssl/pkcs7.h
+diff --git a/include/openssl/pkcs8.h b/include/aws-lc/openssl/pkcs8.h
+similarity index 100%
+rename from include/openssl/pkcs8.h
+rename to include/aws-lc/openssl/pkcs8.h
+diff --git a/include/openssl/poly1305.h b/include/aws-lc/openssl/poly1305.h
+similarity index 100%
+rename from include/openssl/poly1305.h
+rename to include/aws-lc/openssl/poly1305.h
+diff --git a/include/openssl/pool.h b/include/aws-lc/openssl/pool.h
+similarity index 100%
+rename from include/openssl/pool.h
+rename to include/aws-lc/openssl/pool.h
+diff --git a/include/openssl/posix_time.h b/include/aws-lc/openssl/posix_time.h
+similarity index 100%
+rename from include/openssl/posix_time.h
+rename to include/aws-lc/openssl/posix_time.h
+diff --git a/include/openssl/rand.h b/include/aws-lc/openssl/rand.h
+similarity index 100%
+rename from include/openssl/rand.h
+rename to include/aws-lc/openssl/rand.h
+diff --git a/include/openssl/rc4.h b/include/aws-lc/openssl/rc4.h
+similarity index 100%
+rename from include/openssl/rc4.h
+rename to include/aws-lc/openssl/rc4.h
+diff --git a/include/openssl/ripemd.h b/include/aws-lc/openssl/ripemd.h
+similarity index 100%
+rename from include/openssl/ripemd.h
+rename to include/aws-lc/openssl/ripemd.h
+diff --git a/include/openssl/rsa.h b/include/aws-lc/openssl/rsa.h
+similarity index 100%
+rename from include/openssl/rsa.h
+rename to include/aws-lc/openssl/rsa.h
+diff --git a/include/openssl/safestack.h b/include/aws-lc/openssl/safestack.h
+similarity index 100%
+rename from include/openssl/safestack.h
+rename to include/aws-lc/openssl/safestack.h
+diff --git a/include/openssl/service_indicator.h b/include/aws-lc/openssl/service_indicator.h
+similarity index 100%
+rename from include/openssl/service_indicator.h
+rename to include/aws-lc/openssl/service_indicator.h
+diff --git a/include/openssl/sha.h b/include/aws-lc/openssl/sha.h
+similarity index 100%
+rename from include/openssl/sha.h
+rename to include/aws-lc/openssl/sha.h
+diff --git a/include/openssl/siphash.h b/include/aws-lc/openssl/siphash.h
+similarity index 100%
+rename from include/openssl/siphash.h
+rename to include/aws-lc/openssl/siphash.h
+diff --git a/include/openssl/span.h b/include/aws-lc/openssl/span.h
+similarity index 100%
+rename from include/openssl/span.h
+rename to include/aws-lc/openssl/span.h
+diff --git a/include/openssl/sshkdf.h b/include/aws-lc/openssl/sshkdf.h
+similarity index 100%
+rename from include/openssl/sshkdf.h
+rename to include/aws-lc/openssl/sshkdf.h
+diff --git a/include/openssl/ssl.h b/include/aws-lc/openssl/ssl.h
+similarity index 100%
+rename from include/openssl/ssl.h
+rename to include/aws-lc/openssl/ssl.h
+diff --git a/include/openssl/ssl3.h b/include/aws-lc/openssl/ssl3.h
+similarity index 100%
+rename from include/openssl/ssl3.h
+rename to include/aws-lc/openssl/ssl3.h
+diff --git a/include/openssl/stack.h b/include/aws-lc/openssl/stack.h
+similarity index 100%
+rename from include/openssl/stack.h
+rename to include/aws-lc/openssl/stack.h
+diff --git a/include/openssl/target.h b/include/aws-lc/openssl/target.h
+similarity index 100%
+rename from include/openssl/target.h
+rename to include/aws-lc/openssl/target.h
+diff --git a/include/openssl/thread.h b/include/aws-lc/openssl/thread.h
+similarity index 100%
+rename from include/openssl/thread.h
+rename to include/aws-lc/openssl/thread.h
+diff --git a/include/openssl/time.h b/include/aws-lc/openssl/time.h
+similarity index 100%
+rename from include/openssl/time.h
+rename to include/aws-lc/openssl/time.h
+diff --git a/include/openssl/tls1.h b/include/aws-lc/openssl/tls1.h
+similarity index 100%
+rename from include/openssl/tls1.h
+rename to include/aws-lc/openssl/tls1.h
+diff --git a/include/openssl/trust_token.h b/include/aws-lc/openssl/trust_token.h
+similarity index 100%
+rename from include/openssl/trust_token.h
+rename to include/aws-lc/openssl/trust_token.h
+diff --git a/include/openssl/type_check.h b/include/aws-lc/openssl/type_check.h
+similarity index 100%
+rename from include/openssl/type_check.h
+rename to include/aws-lc/openssl/type_check.h
+diff --git a/include/openssl/ui.h b/include/aws-lc/openssl/ui.h
+similarity index 100%
+rename from include/openssl/ui.h
+rename to include/aws-lc/openssl/ui.h
+diff --git a/include/openssl/x509.h b/include/aws-lc/openssl/x509.h
+similarity index 100%
+rename from include/openssl/x509.h
+rename to include/aws-lc/openssl/x509.h
+diff --git a/include/openssl/x509_vfy.h b/include/aws-lc/openssl/x509_vfy.h
+similarity index 100%
+rename from include/openssl/x509_vfy.h
+rename to include/aws-lc/openssl/x509_vfy.h
+diff --git a/include/openssl/x509v3.h b/include/aws-lc/openssl/x509v3.h
+similarity index 100%
+rename from include/openssl/x509v3.h
+rename to include/aws-lc/openssl/x509v3.h
+diff --git a/include/openssl/x509v3_errors.h b/include/aws-lc/openssl/x509v3_errors.h
+similarity index 100%
+rename from include/openssl/x509v3_errors.h
+rename to include/aws-lc/openssl/x509v3_errors.h
+diff --git a/pkgconfig/aws-lc.pc.in b/pkgconfig/aws-lc.pc.in
+new file mode 100644
+index 000000000..980b1593f
+--- /dev/null
++++ b/pkgconfig/aws-lc.pc.in
+@@ -0,0 +1,8 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++libdir=@libdir_for_pc_file@
++includedir=@includedir_for_pc_file@
++
++Name: AWS-LC
++Description: AWS-LC cryptographic library
++Version: @REPORTED_PKGCONFIG_VERSION@
++Requires: libssl-awslc libcrypto-awslc
+diff --git a/pkgconfig/libcrypto-awslc.pc.in b/pkgconfig/libcrypto-awslc.pc.in
+new file mode 100644
+index 000000000..d27434aa5
+--- /dev/null
++++ b/pkgconfig/libcrypto-awslc.pc.in
+@@ -0,0 +1,9 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++libdir=@libdir_for_pc_file@
++includedir=@includedir_for_pc_file@
++
++Name: libcrypto-awslc
++Description: AWS-LC cryptography library
++Version: @REPORTED_PKGCONFIG_VERSION@
++Libs: -L${libdir} -lcrypto-awslc
++Cflags: -I${includedir}/aws-lc
+diff --git a/pkgconfig/libcrypto.pc.in b/pkgconfig/libcrypto.pc.in
+index 3bc5700bf..6b0308c62 100644
+--- a/pkgconfig/libcrypto.pc.in
++++ b/pkgconfig/libcrypto.pc.in
+@@ -3,7 +3,7 @@ libdir=@libdir_for_pc_file@
+ includedir=@includedir_for_pc_file@
+ 
+ Name: AWS-LC-libcrypto
+-Description: AWS-LC cryptography library
++Description: AWS-LC cryptography library (OpenSSL libcrypto SHIM)
+ Version: @REPORTED_PKGCONFIG_VERSION@
+-Libs: -L${libdir} -lcrypto
+-Cflags: -I${includedir}
++Libs: -L${libdir} -lcrypto-awslc
++Cflags: -I${includedir}/aws-lc -I${includedir}
+diff --git a/pkgconfig/libssl-awslc.pc.in b/pkgconfig/libssl-awslc.pc.in
+new file mode 100644
+index 000000000..f5421ca7c
+--- /dev/null
++++ b/pkgconfig/libssl-awslc.pc.in
+@@ -0,0 +1,10 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++libdir=@libdir_for_pc_file@
++includedir=@includedir_for_pc_file@
++
++Name: libssl-awslc
++Description: AWS-LC SSL/TLS library
++Version: @REPORTED_PKGCONFIG_VERSION@
++Requires.private: libcrypto-awslc
++Libs: -L${libdir} -lssl-awslc
++Cflags: -I${includedir}/aws-lc
+diff --git a/pkgconfig/libssl.pc.in b/pkgconfig/libssl.pc.in
+index b5b6a2bd1..0ca1de188 100644
+--- a/pkgconfig/libssl.pc.in
++++ b/pkgconfig/libssl.pc.in
+@@ -3,8 +3,8 @@ libdir=@libdir_for_pc_file@
+ includedir=@includedir_for_pc_file@
+ 
+ Name: AWS-LC-libssl
+-Description: AWS-LC (OpenSSL SHIM)
++Description: AWS-LC cryptography library (OpenSSL libssl SHIM)
+ Version: @REPORTED_PKGCONFIG_VERSION@
+ Requires.private: libcrypto
+-Libs: -L${libdir} -lssl
+-Cflags: -I${includedir}
++Libs: -L${libdir} -lssl-awslc
++Cflags: -I${includedir}/aws-lc -I${includedir}
+diff --git a/ssl/CMakeLists.txt b/ssl/CMakeLists.txt
+index 8db9d3a78..68e9b571f 100644
+--- a/ssl/CMakeLists.txt
++++ b/ssl/CMakeLists.txt
+@@ -117,7 +117,7 @@ install(TARGETS ssl
+         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         LIBRARY
+           DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-          NAMELINK_SKIP
++          NAMELINK_COMPONENT Development
+ )
+ 
+ if(MSVC AND CMAKE_BUILD_TYPE_LOWER MATCHES "relwithdebinfo" AND FIPS)
+@@ -143,12 +143,3 @@ install(EXPORT ssl-targets
+     NAMESPACE AWS::
+     COMPONENT Development)
+ 
+-if(PERFORM_SONAME_BUILD)
+-  install(CODE "
+-set(TGT lib${SSL_LIB_NAME}.so.${ABI_VERSION})
+-set(LNK \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libssl.so)
+-message(STATUS \"Creating symlink: \${LNK} → \${TGT}\")
+-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \${TGT} \${LNK})
+-"
+-    COMPONENT Development)
+-endif()
+-- 
+2.47.3
+

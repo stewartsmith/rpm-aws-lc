@@ -1,9 +1,0 @@
---- aws-lc-1.64.0/pkgconfig/libssl.pc.in	2025-11-11 06:54:25.000000000 -0800
-+++ aws-lc-1.64.0-new/pkgconfig/libssl.pc.in	2025-11-17 11:24:40.760647489 -0800
-@@ -6,5 +6,5 @@
- Description: AWS-LC (OpenSSL SHIM)
- Version: @REPORTED_PKGCONFIG_VERSION@
- Requires.private: libcrypto
--Libs: -L${libdir} -lssl
-+Libs: -L${libdir} -lssl-awslc
- Cflags: -I${includedir}

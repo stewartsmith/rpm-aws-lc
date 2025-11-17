@@ -1,9 +1,0 @@
---- aws-lc-1.64.0/pkgconfig/libcrypto.pc.in	2025-11-11 06:54:25.000000000 -0800
-+++ aws-lc-1.64.0-new/pkgconfig/libcrypto.pc.in	2025-11-17 11:22:25.221450397 -0800
-@@ -5,5 +5,5 @@
- Name: AWS-LC-libcrypto
- Description: AWS-LC cryptography library
- Version: @REPORTED_PKGCONFIG_VERSION@
--Libs: -L${libdir} -lcrypto
-+Libs: -L${libdir} -lcrypto-awslc
- Cflags: -I${includedir}
