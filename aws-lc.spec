@@ -77,7 +77,6 @@ echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
 
 %{_bindir}/bssl
 %{_bindir}/c_rehash
-%{_bindir}/openssl
 
 %package libs
 Summary: AWS-LC development files from package %{name}
