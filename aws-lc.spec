@@ -11,7 +11,7 @@
 %global source_date_epoch_from_changelog 0
 
 Name: aws-lc
-Version: 1.64.0
+Version: 1.73.0
 Release: 3%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
@@ -23,11 +23,12 @@ Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
 BuildRequires: gcc-c++
+BuildRequires: golang
+BuildRequires: perl-interpreter
 
 # We use git style patches
 BuildRequires: git
 
-Patch: 0001-Separate-out-the-OpenSSL-shim-from-AWS-LC.patch
 
 %if %{with provide_openssl}
 Obsoletes: openssl < 1:4.0.0
@@ -43,14 +44,21 @@ from the Google BoringSSL project and the OpenSSL project.
 %autosetup -n aws-lc-%{version} -S git -p1
 
 %build
+# FIPS module boundary detection requires LTO to be disabled
+%define _lto_cflags %{nil}
+
 %cmake \
     %if !%{make_verbose}
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     %endif
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DBUILD_SHARED_LIBS=1 -DENABLE_PRE_SONAME_BUILD=0 \
-    -DDISABLE_GO=1 \
-    -DDISABLE_PERL=1 \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DFIPS=1 \
+    -DBUILD_SHARED_LIBS=1 \
+    -DENABLE_PRE_SONAME_BUILD=0 \
+    -DENABLE_DIST_PKG=1 \
+    -DENABLE_DIST_PKG_OPENSSL_SHIM=0 \
+    -DDISABLE_GO=0 \
+    -DDISABLE_PERL=0 \
     -DBUILD_TESTING=0 \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
