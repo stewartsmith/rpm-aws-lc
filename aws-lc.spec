@@ -11,13 +11,12 @@
 
 Name: aws-lc
 Version: 1.73.0
-Release: 3%{?dist}
+Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
-
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
@@ -27,8 +26,6 @@ BuildRequires: perl-interpreter
 
 # We use git style patches
 BuildRequires: git
-
-
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -65,6 +62,9 @@ from the Google BoringSSL project and the OpenSSL project.
 %cmake_install
 rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
 rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
+
+rm -f %{buildroot}/%{_bindir}/openssl
+rm -f %{buildroot}/%{_libdir}/debug%{_bindir}/openssl-1.73.0-1.aln13.x86_64.debug
 
 mkdir -p %{buildroot}%{_rpmmacrodir}
 echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
@@ -103,7 +103,5 @@ AWS-LC development files from package %{name}.
 %{_rpmmacrodir}/macros.%{name}
 %{_libdir}/libcrypto-awslc.so
 %{_libdir}/libssl-awslc.so
-
-
 
 %changelog
