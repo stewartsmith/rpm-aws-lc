@@ -1,4 +1,3 @@
-%bcond_without provide_openssl
 
 %define _docdir_fmt aws-lc
 
@@ -30,10 +29,6 @@ BuildRequires: perl-interpreter
 BuildRequires: git
 
 
-%if %{with provide_openssl}
-Obsoletes: openssl < 1:4.0.0
-Provides: openssl = 1:4.0.0
-%endif
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -110,28 +105,6 @@ AWS-LC development files from package %{name}.
 %{_libdir}/libcrypto-awslc.so
 %{_libdir}/libssl-awslc.so
 
-%package openssl-compat-devel
-Summary: OpenSSL compatible devel package using AWS-LC
-Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
-Requires: %{name}-devel%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
-%if %{with provide_openssl}
-Obsoletes: openssl-devel <= 1:4.0.0
-Provides: openssl-devel = 1:4.0.0
-%endif
-
-%description openssl-compat-devel
-AWS-LC provides most of the OpenSSL APIs and this devel package provides
-the symlinks for headers and shared libraries to enable software to be
-built against AWS-LC without being modified to explicitly look for the
-AWS-LC development files.
-
-%files openssl-compat-devel
-%{_includedir}/openssl
-%{_libdir}/pkgconfig/libcrypto.pc
-%{_libdir}/pkgconfig/libssl.pc
-%{_libdir}/pkgconfig/openssl.pc
-%{_libdir}/libcrypto.so
-%{_libdir}/libssl.so
 
 
 %changelog
