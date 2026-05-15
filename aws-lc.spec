@@ -11,7 +11,7 @@
 
 Name: aws-lc
 Version: 1.73.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
