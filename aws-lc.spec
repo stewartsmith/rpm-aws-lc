@@ -70,6 +70,10 @@ mkdir -p %{buildroot}%{_rpmmacrodir}
 echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
     > %{buildroot}%{_rpmmacrodir}/macros.%{name}
 
+mkdir -p %{buildroot}%{_libdir}/aws-lc
+ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
+ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
+
 %files
 %doc README.md
 %doc NOTICE
@@ -103,5 +107,8 @@ AWS-LC development files from package %{name}.
 %{_rpmmacrodir}/macros.%{name}
 %{_libdir}/libcrypto-awslc.so
 %{_libdir}/libssl-awslc.so
+%dir %{_libdir}/aws-lc
+%{_libdir}/aws-lc/libcrypto.so
+%{_libdir}/aws-lc/libssl.so
 
 %changelog
