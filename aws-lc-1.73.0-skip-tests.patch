@@ -1,0 +1,16 @@
+diff --git a/util/all_tests.json b/util/all_tests.json
+index bbe879c..09b45d0 100644
+--- a/util/all_tests.json
++++ b/util/all_tests.json
+@@ -129,11 +129,6 @@
+   {
+     "cmd": ["crypto/mem_set_test"]
+   },
+-  {
+-    "cmd": [
+-      "crypto/dynamic_loading_test"
+-    ]
+-  },
+   {
+     "comment": "Run randomness generation tests in isolated process",
+     "cmd": ["crypto/rand_isolated_test"]

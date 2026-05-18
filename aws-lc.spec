@@ -2,10 +2,9 @@
 %define _docdir_fmt aws-lc
 
 %{!?make_verbose: %define make_verbose 0}
+%{!?_rpmmacrodir: %global _rpmmacrodir /usr/lib/rpm/macros.d}
 
-%if 0%{?rhel} <= 8
 %undefine __cmake_in_source_build
-%endif
 
 %global source_date_epoch_from_changelog 0
 
@@ -17,6 +16,8 @@ License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLea
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
+
+Patch0: aws-lc-1.73.0-skip-tests.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
@@ -40,9 +41,7 @@ from the Google BoringSSL project and the OpenSSL project.
 %define _lto_cflags %{nil}
 
 %cmake \
-    %if !%{make_verbose}
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
-    %endif
     -DCMAKE_BUILD_TYPE=Release \
     -DFIPS=1 \
     -DBUILD_SHARED_LIBS=1 \
@@ -51,7 +50,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DENABLE_DIST_PKG_OPENSSL_SHIM=0 \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
-    -DBUILD_TESTING=0 \
+    -DBUILD_TESTING=1 \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
 
@@ -73,6 +72,14 @@ echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
 mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
+
+%check
+export GOPATH=$(pwd)/.gopath
+export GOMODCACHE=${GOPATH}/pkg/mod
+# SClientTest requires network access unavailable in mock builds
+export GTEST_FILTER=-SClientTest.*
+go run util/all_tests.go -build-dir %{_vpath_builddir}
+chmod -R u+w .gopath 2>/dev/null || true
 
 %files
 %doc README.md
