@@ -10,11 +10,12 @@
 
 Name: aws-lc
 Version: 1.73.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
+# TODO [childw]: use LTS FIPS release on 2025 branch
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
 
 Patch0: aws-lc-1.73.0-dynamic-loading-test-path.patch
@@ -40,6 +41,7 @@ from the Google BoringSSL project and the OpenSSL project.
 # FIPS module boundary detection requires LTO to be disabled
 %define _lto_cflags %{nil}
 
+# TODO [childw]: configure prefix build
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
