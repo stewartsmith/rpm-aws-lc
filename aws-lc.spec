@@ -17,7 +17,7 @@ URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
 
-Patch0: aws-lc-1.73.0-skip-tests.patch
+Patch0: aws-lc-1.73.0-dynamic-loading-test-path.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc

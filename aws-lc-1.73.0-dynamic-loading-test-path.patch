@@ -1,0 +1,33 @@
+diff --git a/crypto/CMakeLists.txt b/crypto/CMakeLists.txt
+index c7f3c22..86f2aad 100644
+--- a/crypto/CMakeLists.txt
++++ b/crypto/CMakeLists.txt
+@@ -883,7 +883,7 @@ if(BUILD_TESTING)
+   endif()
+ 
+   if (BUILD_SHARED_LIBS AND NOT WIN32)
+-    target_compile_options(${DYNAMIC_LOADING_TEST_EXEC} PUBLIC "-DLIBCRYPTO_PATH=$<TARGET_FILE:crypto>")
++    target_compile_options(${DYNAMIC_LOADING_TEST_EXEC} PUBLIC "-DLIBCRYPTO_PATH=\"$<TARGET_FILE:crypto>\"")
+     # Do not link to boringssl_gtest_main or any library that might be linked to libcrypto.so.
+     if(ANDROID)
+       target_link_libraries(${DYNAMIC_LOADING_TEST_EXEC} PUBLIC boringssl_gtest ${DYNAMIC_LINKER_LIB})
+diff --git a/crypto/dynamic_loading_test.c b/crypto/dynamic_loading_test.c
+index 5c24ddf..4c37c28 100644
+--- a/crypto/dynamic_loading_test.c
++++ b/crypto/dynamic_loading_test.c
+@@ -89,14 +89,9 @@ static void *load_unload(void *ctx) {
+ }
+ 
+ 
+-#define xstr(s) str(s)
+-#define str(s) #s
+-#define DYNAMIC_LIBRARY_PATH xstr(LIBCRYPTO_PATH)
+-
+-
+ int main(int argc, char *argv[]) {
+   pthread_t thread_id;
+-  if (pthread_create(&thread_id, NULL, load_unload, (void*)DYNAMIC_LIBRARY_PATH)) {
++  if (pthread_create(&thread_id, NULL, load_unload, (void*)LIBCRYPTO_PATH)) {
+     fprintf(stderr, "Call to pthread_create in main failed.");
+     exit(1);
+   }
