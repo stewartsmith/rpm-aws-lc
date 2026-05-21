@@ -8,8 +8,13 @@
 
 %global source_date_epoch_from_changelog 0
 
+%global awslc_ver_maj 1
+%global awslc_ver_min 73
+%global awslc_ver_patch 0
+%global awslc_prefix awslc_%{awslc_ver_maj}_%{awslc_ver_min}_%{awslc_ver_patch}_
+
 Name: aws-lc
-Version: 1.73.0
+Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: 3%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
@@ -41,7 +46,21 @@ from the Google BoringSSL project and the OpenSSL project.
 # FIPS module boundary detection requires LTO to be disabled
 %define _lto_cflags %{nil}
 
-# TODO [childw]: configure prefix build
+# Build static libs first to generate the prefix symbols list
+mkdir -p _symbols_build
+cmake3 -S . -B _symbols_build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DFIPS=1 \
+    -DBUILD_SHARED_LIBS=0 \
+    -DBUILD_TESTING=0 \
+    -DDISABLE_GO=0 \
+    -DDISABLE_PERL=0
+cmake3 --build _symbols_build -j$(nproc)
+go run util/read_symbols.go _symbols_build/crypto/libcrypto.a > _symbols.txt.tmp
+go run util/read_symbols.go _symbols_build/ssl/libssl.a >> _symbols.txt.tmp
+sort -u _symbols.txt.tmp > _symbols.txt
+rm -rf _symbols_build _symbols.txt.tmp
+
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
@@ -53,6 +72,8 @@ from the Google BoringSSL project and the OpenSSL project.
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
+    -DBORINGSSL_PREFIX=%{awslc_prefix} \
+    -DBORINGSSL_PREFIX_SYMBOLS=$(pwd)/_symbols.txt \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
 
