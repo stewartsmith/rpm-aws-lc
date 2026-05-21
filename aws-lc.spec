@@ -56,10 +56,11 @@ CFLAGS="" CXXFLAGS="" %{__cmake} -S . -B _symbols_build \
     -DBUILD_TESTING=0 \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0
-%{__cmake} --build _symbols_build -j$(nproc)
+%{__cmake} --build _symbols_build --target crypto ssl -j$(nproc)
 go run util/read_symbols.go _symbols_build/crypto/libcrypto.a > _symbols.txt.tmp
 go run util/read_symbols.go _symbols_build/ssl/libssl.a >> _symbols.txt.tmp
-sort -u _symbols.txt.tmp > _symbols.txt
+# Exclude linker-defined FIPS boundary symbols that cannot be prefixed
+sort -u _symbols.txt.tmp | grep -v '^BORINGSSL_bcm_' > _symbols.txt
 rm -rf _symbols_build _symbols.txt.tmp
 
 %cmake \
