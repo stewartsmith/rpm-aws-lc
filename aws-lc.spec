@@ -3,6 +3,7 @@
 
 %{!?make_verbose: %define make_verbose 0}
 %{!?_rpmmacrodir: %global _rpmmacrodir /usr/lib/rpm/macros.d}
+%{!?__cmake: %global __cmake cmake}
 
 %undefine __cmake_in_source_build
 
@@ -48,14 +49,14 @@ from the Google BoringSSL project and the OpenSSL project.
 
 # Build static libs first to generate the prefix symbols list
 mkdir -p _symbols_build
-cmake3 -S . -B _symbols_build \
+CFLAGS="" CXXFLAGS="" %{__cmake} -S . -B _symbols_build \
     -DCMAKE_BUILD_TYPE=Release \
     -DFIPS=1 \
     -DBUILD_SHARED_LIBS=0 \
     -DBUILD_TESTING=0 \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0
-cmake3 --build _symbols_build -j$(nproc)
+%{__cmake} --build _symbols_build -j$(nproc)
 go run util/read_symbols.go _symbols_build/crypto/libcrypto.a > _symbols.txt.tmp
 go run util/read_symbols.go _symbols_build/ssl/libssl.a >> _symbols.txt.tmp
 sort -u _symbols.txt.tmp > _symbols.txt
