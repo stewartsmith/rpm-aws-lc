@@ -33,7 +33,7 @@ BuildRequires: git
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
-AWS Cryptography team for AWS and their customers. It іs based on code
+AWS Cryptography team for AWS and their customers. It is based on code
 from the Google BoringSSL project and the OpenSSL project.
 
 %prep
@@ -94,7 +94,7 @@ chmod -R u+w .gopath 2>/dev/null || true
 %{_bindir}/aws-lc-c_rehash
 
 %package libs
-Summary: AWS-LC development files from package %{name}
+Summary: AWS-LC shared libraries
 
 %description libs
 AWS-LC libraries
