@@ -9,22 +9,18 @@
 
 %global source_date_epoch_from_changelog 0
 
-%global awslc_ver_maj 1
-%global awslc_ver_min 73
+%global awslc_ver_maj 5
+%global awslc_ver_min 2
 %global awslc_ver_patch 0
-%global awslc_prefix awslc_%{awslc_ver_maj}_%{awslc_ver_min}_%{awslc_ver_patch}_
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 4%{?dist}
+Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
-# TODO [childw]: use LTS FIPS release on 2025 branch
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
-
-Patch0: aws-lc-1.73.0-dynamic-loading-test-path.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
@@ -47,22 +43,8 @@ from the Google BoringSSL project and the OpenSSL project.
 # FIPS module boundary detection requires LTO to be disabled
 %define _lto_cflags %{nil}
 
-# Build static libs first to generate the prefix symbols list
-mkdir -p _symbols_build
-CFLAGS="" CXXFLAGS="" %{__cmake} -S . -B _symbols_build \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DFIPS=1 \
-    -DBUILD_SHARED_LIBS=0 \
-    -DBUILD_TESTING=0 \
-    -DDISABLE_GO=0 \
-    -DDISABLE_PERL=0
-%{__cmake} --build _symbols_build --target crypto ssl -j$(nproc)
-go run util/read_symbols.go _symbols_build/crypto/libcrypto.a > _symbols.txt.tmp
-go run util/read_symbols.go _symbols_build/ssl/libssl.a >> _symbols.txt.tmp
-# Exclude linker-defined FIPS boundary symbols that cannot be prefixed
-sort -u _symbols.txt.tmp | grep -v '^BORINGSSL_bcm_' > _symbols.txt
-rm -rf _symbols_build _symbols.txt.tmp
-
+# ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
+# (crypto/libcrypto.map, ssl/libssl.map) automatically.
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
@@ -74,8 +56,6 @@ rm -rf _symbols_build _symbols.txt.tmp
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
-    -DBORINGSSL_PREFIX=%{awslc_prefix} \
-    -DBORINGSSL_PREFIX_SYMBOLS=$(pwd)/_symbols.txt \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
 
@@ -87,8 +67,7 @@ rm -rf _symbols_build _symbols.txt.tmp
 rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
 rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
 
-rm -f %{buildroot}/%{_bindir}/openssl
-rm -f %{buildroot}/%{_libdir}/debug%{_bindir}/openssl-1.73.0-1.aln13.x86_64.debug
+rm -f %{buildroot}/%{_bindir}/aws-lc-openssl
 
 mkdir -p %{buildroot}%{_rpmmacrodir}
 echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
@@ -111,8 +90,8 @@ chmod -R u+w .gopath 2>/dev/null || true
 %doc NOTICE
 %license LICENSE
 
-%{_bindir}/bssl
-%{_bindir}/c_rehash
+%{_bindir}/aws-lc-bssl
+%{_bindir}/aws-lc-c_rehash
 
 %package libs
 Summary: AWS-LC development files from package %{name}
