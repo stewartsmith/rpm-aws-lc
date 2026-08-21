@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Fri, 21 Aug 2026 00:30:00 +0000
+Subject: [PATCH] Treat PROFILE=SYSTEM cipher string as the default cipher list
+
+"PROFILE=SYSTEM" is a Red Hat/Fedora extension to OpenSSL that loads the
+cipher string from the system-wide crypto policy (crypto-policies)
+configuration. AWS-LC does not support reading the system policy and
+previously failed SSL_CTX_set_cipher_list()/SSL_set_cipher_list() with
+an error when an application requested it.
+
+As a stop-gap until proper crypto-policies support is available, accept
+"PROFILE=SYSTEM" at the beginning of a cipher string and map it to
+AWS-LC's internal default cipher list, processing any rules appended
+after it, so that applications relying on the system profile continue
+to work. This reuses the existing known-keyword mechanism that already
+maps "DEFAULT", "HIGH", and "FIPS" to the default list.
+
+diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
+--- a/ssl/ssl_cipher.cc
++++ b/ssl/ssl_cipher.cc
+@@ -1091,6 +1091,7 @@
+   "DEFAULT",
+   "FIPS",
+   "HIGH",
++  "PROFILE=SYSTEM",
+ };
+ 
+ static bool is_known_default_alias_keyword_filter_rule(const char *rule,
+diff --git a/ssl/ssl_ciphers_test.cc b/ssl/ssl_ciphers_test.cc
+--- a/ssl/ssl_ciphers_test.cc
++++ b/ssl/ssl_ciphers_test.cc
+@@ -636,6 +636,77 @@
+   }
+ }
+ 
++// GetCipherIDs returns the IDs of the ciphers configured on |ctx|, in order.
++static std::vector<uint32_t> GetCipherIDs(SSL_CTX *ctx) {
++  std::vector<uint32_t> ids;
++  for (const SSL_CIPHER *cipher : SSL_CTX_get_ciphers(ctx)) {
++    ids.push_back(SSL_CIPHER_get_id(cipher));
++  }
++  return ids;
++}
++
++// "PROFILE=SYSTEM" is a Red Hat/Fedora extension to OpenSSL that selects the
++// system-wide crypto policy cipher string. AWS-LC does not support reading
++// the system policy, but must not fail when an application requests it.
++// Instead it is treated as a request for the default cipher list.
++TEST(SSLTest, ProfileSystemCipherRule) {
++  bssl::UniquePtr<SSL_CTX> default_ctx(SSL_CTX_new(TLS_method()));
++  ASSERT_TRUE(default_ctx);
++  ASSERT_TRUE(SSL_CTX_set_cipher_list(default_ctx.get(),
++                                      SSL_DEFAULT_CIPHER_LIST));
++  const std::vector<uint32_t> default_ids = GetCipherIDs(default_ctx.get());
++  ASSERT_FALSE(default_ids.empty());
++
++  // Configuring "PROFILE=SYSTEM" must succeed in both lax and strict modes
++  // and must yield the default cipher list.
++  for (bool strict : {false, true}) {
++    SCOPED_TRACE(strict);
++    bssl::UniquePtr<SSL_CTX> ctx(SSL_CTX_new(TLS_method()));
++    ASSERT_TRUE(ctx);
++    if (strict) {
++      ASSERT_TRUE(SSL_CTX_set_strict_cipher_list(ctx.get(), "PROFILE=SYSTEM"));
++    } else {
++      ASSERT_TRUE(SSL_CTX_set_cipher_list(ctx.get(), "PROFILE=SYSTEM"));
++    }
++    EXPECT_EQ(GetCipherIDs(ctx.get()), default_ids);
++  }
++
++  // |SSL_set_cipher_list| must also accept "PROFILE=SYSTEM".
++  {
++    bssl::UniquePtr<SSL_CTX> ctx(SSL_CTX_new(TLS_method()));
++    ASSERT_TRUE(ctx);
++    bssl::UniquePtr<SSL> ssl(SSL_new(ctx.get()));
++    ASSERT_TRUE(ssl);
++    EXPECT_TRUE(SSL_set_cipher_list(ssl.get(), "PROFILE=SYSTEM"));
++  }
++
++  // Rules appended after the "PROFILE=SYSTEM" prefix are still processed, as
++  // in the upstream extension. "PROFILE=SYSTEM:<rules>" behaves like
++  // "DEFAULT:<rules>".
++  {
++    bssl::UniquePtr<SSL_CTX> profile_ctx(SSL_CTX_new(TLS_method()));
++    ASSERT_TRUE(profile_ctx);
++    ASSERT_TRUE(
++        SSL_CTX_set_cipher_list(profile_ctx.get(), "PROFILE=SYSTEM:!AES"));
++
++    bssl::UniquePtr<SSL_CTX> ctx(SSL_CTX_new(TLS_method()));
++    ASSERT_TRUE(ctx);
++    ASSERT_TRUE(SSL_CTX_set_cipher_list(ctx.get(), "DEFAULT:!AES"));
++
++    EXPECT_EQ(GetCipherIDs(profile_ctx.get()), GetCipherIDs(ctx.get()));
++  }
++
++  // "PROFILE=SYSTEM" is only recognized at the beginning of the cipher
++  // string.
++  {
++    bssl::UniquePtr<SSL_CTX> ctx(SSL_CTX_new(TLS_method()));
++    ASSERT_TRUE(ctx);
++    EXPECT_FALSE(
++        SSL_CTX_set_strict_cipher_list(ctx.get(), "AES:PROFILE=SYSTEM"));
++    ERR_clear_error();
++  }
++}
++
+ static std::vector<CipherTest> combine_tests(const CipherTest *c1,
+                                              size_t size_1,
+                                              const CipherTest *c2,

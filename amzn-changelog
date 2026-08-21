@@ -1,0 +1,4 @@
+* Fri Aug 21 2026 Stephen A. Zarkos <szarkos@amazon.com> - 5.2.0-2.amzn2027
+- Accept the "PROFILE=SYSTEM" (crypto-policies) cipher string by mapping
+  it to AWS-LC's default cipher list instead of returning an error.
+  Drop once AWS-LC gains real system crypto policy support upstream.

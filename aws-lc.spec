@@ -15,12 +15,17 @@
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
+
+# Accept the "PROFILE=SYSTEM" (crypto-policies) cipher string by mapping
+# it to AWS-LC's default cipher list instead of returning an error.
+# Drop once AWS-LC gains real system crypto policy support upstream.
+Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
@@ -123,3 +128,4 @@ AWS-LC development files from package %{name}.
 %{_libdir}/aws-lc/libssl.so
 
 %changelog
+%autochangelog
