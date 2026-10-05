@@ -1,3 +1,8 @@
+* Fri Oct 02 2026 Will Childs-Klein <childw@amazon.com> - 5.11.0-1.amzn2027
+- Update to 5.11.0
+- Build with ENABLE_CRYPTO_POLICIES so every SSL_CTX is seeded from
+  /etc/crypto-policies/back-ends/opensslcnf.config
+
 * Fri Aug 21 2026 Stephen A. Zarkos <szarkos@amazon.com> - 5.2.0-2.amzn2027
 - Accept the "PROFILE=SYSTEM" (crypto-policies) cipher string by mapping
   it to AWS-LC's default cipher list instead of returning an error.

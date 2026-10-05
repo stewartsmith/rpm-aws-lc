@@ -10,12 +10,12 @@
 %global source_date_epoch_from_changelog 0
 
 %global awslc_ver_maj 5
-%global awslc_ver_min 2
+%global awslc_ver_min 11
 %global awslc_ver_patch 0
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 2%{?dist}
+Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
@@ -50,6 +50,10 @@ from the Google BoringSSL project and the OpenSSL project.
 
 # ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
 # (crypto/libcrypto.map, ssl/libssl.map) automatically.
+#
+# ENABLE_CRYPTO_POLICIES seeds every SSL_CTX from the system crypto-policies
+# OpenSSL back-end. Its compiled-in default is the path update-crypto-policies
+# writes, so AWSLC_CRYPTO_POLICY_FILE needs no override here.
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
@@ -58,6 +62,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DENABLE_PRE_SONAME_BUILD=0 \
     -DENABLE_DIST_PKG=1 \
     -DENABLE_DIST_PKG_OPENSSL_SHIM=0 \
+    -DENABLE_CRYPTO_POLICIES=1 \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
@@ -87,6 +92,11 @@ export GOPATH=$(pwd)/.gopath
 export GOMODCACHE=${GOPATH}/pkg/mod
 # SClientTest requires network access unavailable in mock builds
 export GTEST_FILTER=-SClientTest.*
+# The ssl tests assert AWS-LC's built-in defaults, which the buildroot's
+# crypto-policies back-end would override now that ENABLE_CRYPTO_POLICIES is
+# on. Point the loader at a missing file; the crypto-policy tests supply their
+# own fixtures through this same variable.
+export AWSLC_CRYPTO_POLICY_FILE=%{_builddir}/no-such-opensslcnf.config
 go run util/all_tests.go -build-dir %{_vpath_builddir}
 chmod -R u+w .gopath 2>/dev/null || true
 
