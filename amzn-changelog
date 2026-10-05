@@ -1,3 +1,11 @@
+* Mon Oct 05 2026 Stephen A. Zarkos <szarkos@amazon.com> - 5.11.0-2.amzn2027
+- Build Rust bindings. Also adjust aws-lc.pc to ensure aws-lc-sys Rust crate
+  auto-detects a system AWS-LC via pkg-config.
+- Fixup lint warnings about directory ownership (%{_includedir}/aws-lc and
+  %dir %{_datadir}/rust).
+- Update AWSLC_CRYPTO_POLICY_FILE to point to 'aws-lc.config', which is generated
+  by crypto-policies >= 20260811-1.
+
 * Fri Oct 02 2026 Will Childs-Klein <childw@amazon.com> - 5.11.0-1.amzn2027
 - Update to 5.11.0
 - Build with ENABLE_CRYPTO_POLICIES so every SSL_CTX is seeded from

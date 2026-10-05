@@ -1,4 +1,3 @@
-
 %define _docdir_fmt aws-lc
 
 %{!?make_verbose: %define make_verbose 0}
@@ -15,7 +14,7 @@
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
@@ -26,12 +25,17 @@ Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws
 # it to AWS-LC's default cipher list instead of returning an error.
 # Drop once AWS-LC gains real system crypto policy support upstream.
 Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
+# Search path for aws-lc-sys (Rust) system-library auto-detection; the
+# directory holds only AWS-LC symlinks so it cannot resolve to OpenSSL.
+Patch: aws-lc-5.11.0-pkgconfig-awslc-libdir.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
 BuildRequires: gcc-c++
+BuildRequires: clang
 BuildRequires: golang
 BuildRequires: perl-interpreter
+BuildRequires: bindgen-cli
 
 # We use git style patches
 BuildRequires: git
@@ -52,8 +56,8 @@ from the Google BoringSSL project and the OpenSSL project.
 # (crypto/libcrypto.map, ssl/libssl.map) automatically.
 #
 # ENABLE_CRYPTO_POLICIES seeds every SSL_CTX from the system crypto-policies
-# OpenSSL back-end. Its compiled-in default is the path update-crypto-policies
-# writes, so AWSLC_CRYPTO_POLICY_FILE needs no override here.
+# OpenSSL back-end. The AWSLC_CRYPTO_POLICY_FILE override points AWS-LC at the
+# dedicated aws-lc.config back-end that newer crypto-policies generated.
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
@@ -63,9 +67,11 @@ from the Google BoringSSL project and the OpenSSL project.
     -DENABLE_DIST_PKG=1 \
     -DENABLE_DIST_PKG_OPENSSL_SHIM=0 \
     -DENABLE_CRYPTO_POLICIES=1 \
+    -DAWSLC_CRYPTO_POLICY_FILE="/etc/crypto-policies/back-ends/aws-lc.config" \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
+    -DGENERATE_RUST_BINDINGS=ON \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
 
@@ -86,6 +92,8 @@ echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
 mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
+
+mv %{buildroot}%{_includedir}/rust_wrapper.h %{buildroot}%{_includedir}/aws-lc/
 
 %check
 export GOPATH=$(pwd)/.gopath
@@ -110,6 +118,7 @@ chmod -R u+w .gopath 2>/dev/null || true
 
 %package libs
 Summary: AWS-LC shared libraries
+Requires: crypto-policies >= 20260811-1
 
 %description libs
 AWS-LC libraries
@@ -126,7 +135,9 @@ Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 AWS-LC development files from package %{name}.
 
 %files devel
+%dir %{_includedir}/aws-lc
 %{_includedir}/aws-lc/openssl
+%{_includedir}/aws-lc/rust_wrapper.h
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
 %{_libdir}/pkgconfig/aws-lc.pc
@@ -136,6 +147,8 @@ AWS-LC development files from package %{name}.
 %dir %{_libdir}/aws-lc
 %{_libdir}/aws-lc/libcrypto.so
 %{_libdir}/aws-lc/libssl.so
+%dir %{_datadir}/rust
+%{_datadir}/rust/aws_lc_bindings.rs
 
 %changelog
 %autochangelog

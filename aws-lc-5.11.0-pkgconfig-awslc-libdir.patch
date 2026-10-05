@@ -1,0 +1,30 @@
+From: rpm-build <rpm-build>
+Subject: [PATCH] pkgconfig: add -L${libdir}/aws-lc to aws-lc.pc
+
+The aws-lc-sys Rust crate (>= 0.45) auto-detects a system AWS-LC via
+pkg-config, but it discards the -l names from the .pc file and probes
+the -L directory for "libcrypto.so" before "libcrypto-awslc.so". With
+no -L in aws-lc.pc it probes /usr/lib64, where openssl-devel's
+libcrypto.so shadows AWS-LC and the crate silently links OpenSSL 3
+against AWS-LC headers and bindings.
+
+Point the crate at %{_libdir}/aws-lc, which holds only AWS-LC symlinks
+(libcrypto.so -> libcrypto-awslc.so), so it always resolves AWS-LC.
+The suffixed -lssl-awslc/-lcrypto-awslc names are kept, so C consumers
+see the same flags as before plus one -L that is a no-op for them.
+---
+  pkgconfig/product.pc.in        | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/pkgconfig/product.pc.in b/pkgconfig/product.pc.in
+index 3c67704..0405e01 100644
+--- a/pkgconfig/product.pc.in
++++ b/pkgconfig/product.pc.in
+@@ -7,4 +7,7 @@ Description: AWS-LC (@SOFTWARE_VERSION@)
+ URL: https://github.com/aws/aws-lc
+ Version: @REPORTED_PKGCONFIG_VERSION@
+ Requires: @PRODUCT_PC_REQUIRES@
++# Search path for aws-lc-sys (Rust) system-library auto-detection; the
++# directory holds only AWS-LC symlinks so it cannot resolve to OpenSSL.
++Libs: -L${libdir}/aws-lc
+ 
