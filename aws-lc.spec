@@ -13,6 +13,20 @@
 %global awslc_ver_min 2
 %global awslc_ver_patch 0
 
+# AWS-LC supports FIPS mode on a subset of its target architectures. The hard
+# gate is the guard in util/fipstools/acvp/modulewrapper/main.cc, which only
+# accepts OPENSSL_X86_64, OPENSSL_ARM, OPENSSL_AARCH64, OPENSSL_PPC64LE,
+# OPENSSL_PPC32BE and OPENSSL_PPC64BE, and #errors out otherwise. Everything
+# else Fedora builds for (s390x, riscv64, i686, loongarch64) must therefore
+# build with FIPS disabled.
+%global fips_arches x86_64 aarch64 ppc64le %{arm}
+
+%ifarch %{fips_arches}
+%global awslc_fips 1
+%else
+%global awslc_fips 0
+%endif
+
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: 2%{?dist}
@@ -45,24 +59,28 @@ from the Google BoringSSL project and the OpenSSL project.
 %autosetup -n aws-lc-%{version} -S git -p1
 
 %build
+%if %{awslc_fips}
 # FIPS module boundary detection requires LTO to be disabled
 %define _lto_cflags %{nil}
+%endif
 
+# No rpath is set: the libraries install into %%{_libdir}, which is already on
+# the default linker search path. An $ORIGIN-relative rpath would be stripped
+# of its $ORIGIN by rpm/shell expansion and rejected by check-rpaths.
+#
 # ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
 # (crypto/libcrypto.map, ssl/libssl.map) automatically.
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFIPS=1 \
+    -DFIPS=%{awslc_fips} \
     -DBUILD_SHARED_LIBS=1 \
     -DENABLE_PRE_SONAME_BUILD=0 \
     -DENABLE_DIST_PKG=1 \
     -DENABLE_DIST_PKG_OPENSSL_SHIM=0 \
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
-    -DBUILD_TESTING=1 \
-    -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
-    -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
+    -DBUILD_TESTING=1
 
 # use --define 'make_verbose 1' to enable verbose
 %(x='%{cmake_build}'; echo ${x/ --verbose})

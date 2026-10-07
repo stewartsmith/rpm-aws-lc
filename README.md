@@ -24,7 +24,16 @@ upstream tarball is fetched rather than committed.
 
 Libraries and headers are name-suffixed and installed under `aws-lc/`, so the
 package coexists with the system OpenSSL instead of replacing it. The build
-enables FIPS mode and runs the upstream test suite in `%check`.
+runs the upstream test suite in `%check`.
+
+## FIPS mode
+
+FIPS mode is enabled only on the architectures AWS-LC supports it on —
+`x86_64`, `aarch64`, `ppc64le`, and 32-bit arm — and disabled everywhere else.
+The gate is upstream's gate: `util/fipstools/acvp/modulewrapper/main.cc` fails
+the build with `#error "FIPS build not supported on this architecture"` on any
+target it does not recognise, which is what `s390x`, `riscv64`, `i686`, and
+`loongarch64` hit. The arch list lives in the `fips_arches` macro in the spec.
 
 ## Building
 
