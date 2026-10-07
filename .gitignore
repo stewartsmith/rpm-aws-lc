@@ -1,3 +1,6 @@
 .tape
-aws-lc-5.2.0.tar.gz
+*.tar.gz
+*.src.rpm
+# Symlink to amzn-changelog, created by .copr/Makefile for rpmautospec.
+/changelog
 

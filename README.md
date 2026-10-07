@@ -32,3 +32,21 @@ enables FIPS mode and runs the upstream test suite in `%check`.
 spectool -g aws-lc.spec    # fetch the tarball listed in sources
 rpmbuild -ba aws-lc.spec
 ```
+
+## Fedora COPR
+
+COPR builds this repo directly via the `make_srpm` source build method; the
+tarball is fetched at SRPM time by `.copr/Makefile` rather than committed.
+
+```sh
+copr-cli add-package-scm aws-lc --name aws-lc \
+  --clone-url <public clone url> --commit <branch> \
+  --spec aws-lc.spec --type git --method make_srpm
+copr-cli build-package aws-lc --name aws-lc
+```
+
+To reproduce COPR's SRPM step locally:
+
+```sh
+make -f .copr/Makefile srpm outdir=/tmp/srpm
+```
