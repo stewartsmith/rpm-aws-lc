@@ -25,7 +25,45 @@ Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: %autorelease
 Summary: AWS-LC cryptographic library
-License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
+# Upstream LICENSE is a summary and does not match the sources in two places,
+# so the tag below is derived by auditing every non-test source file in the
+# trees CMake actually compiles -- crypto/, ssl/, tool/, tool-openssl/,
+# include/, and the third_party/ subtrees pulled in by add_subdirectory or
+# #include:
+#
+#   crypto/, ssl/, tool/,     Apache-2.0 and ISC, plus ORs over
+#   tool-openssl/, include/     Apache-2.0/ISC/MIT. Two files carry no SPDX
+#                               tag and are public domain; see below.
+#   third_party/s2n-bignum    ORs over Apache-2.0/ISC/MIT-0
+#   third_party/fiat          MIT (no SPDX tags; see its LICENSE). Compiled in
+#                               via the p256/p384/p521 and curve25519 headers.
+#   third_party/jitterentropy BSD-3-Clause. Dual BSD/GPL-2.0 upstream, and
+#                               Amazon expressly elects BSD. Built unless
+#                               DISABLE_CPU_JITTER_ENTROPY, which we do not set.
+#
+# Every OR resolves to Apache-2.0 or ISC, both already required, so only MIT
+# (fiat), BSD-3-Clause (jitterentropy) and the public domain files add to the
+# set. The public domain code is compiled in on specific arches:
+#
+#   crypto/fipsmodule/md5/asm/md5-x86_64.pl  x86_64, via perlasm() in
+#     crypto/fipsmodule/CMakeLists.txt. "I hereby disclaim the copyright on
+#     this code and place it in the public domain."
+#   crypto/poly1305/poly1305_arm_asm.S  32-bit arm, guarded by OPENSSL_ARM.
+#     Taken from the public domain neon2 version in SUPERCOP.
+#
+# Upstream LICENSE names these, but they do not apply to what we build:
+#
+#   OpenSSL, SSLeay-standalone  AWS-LC relicensed all OpenSSL-derived code to
+#     Apache-2.0, as its LICENSE states. No compiled source carries SPDX
+#     OpenSSL, and none carries the legacy SSLeay license grant. The 188 files
+#     bearing the Eric Young cryptsoft copyright are all SPDX Apache-2.0 --
+#     that line is a copyright attribution to preserve, not a license grant.
+#   CC0-1.0  Upstream LICENSE attributes its CC0 section to the Keccak and AES
+#     reference implementations, but those are licensed otherwise:
+#     keccak1600.c is Apache-2.0 and aes_nohw.c is ISC. The public domain code
+#     above is a dedication rather than a CC0 grant, so Fedora's
+#     LicenseRef-Fedora-Public-Domain covers it.
+License: Apache-2.0 AND ISC AND MIT AND BSD-3-Clause AND LicenseRef-Fedora-Public-Domain
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
