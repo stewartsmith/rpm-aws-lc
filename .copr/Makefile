@@ -14,9 +14,9 @@ outdir ?= $(CURDIR)
 .PHONY: srpm
 
 srpm:
-	dnf -y install rpmdevtools rpm-build
-	# Only needed to expand %autochangelog; absent outside Fedora.
-	-dnf -y install rpmautospec-rpm-macros
+	# rpmautospec is required, not optional: the spec uses both %autorelease
+	# and %autochangelog, and an unexpanded %autorelease is not a valid Release.
+	dnf -y install rpmdevtools rpm-build rpmautospec-rpm-macros
 	# rpmautospec looks for a file named "changelog".
 	ln -sfn amzn-changelog changelog
 	spectool -g -S $(spec)

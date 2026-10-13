@@ -16,9 +16,14 @@
 %global awslc_fips 0
 %endif
 
+%if %{awslc_fips}
+# FIPS module boundary detection requires LTO to be disabled.
+%global _lto_cflags %{nil}
+%endif
+
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 2%{?dist}
+Release: %autorelease
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
@@ -30,14 +35,14 @@ Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws
 # Drop once AWS-LC gains real system crypto policy support upstream.
 Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
 
-BuildRequires: cmake >= 3.0
+BuildRequires: cmake
 BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: golang
 BuildRequires: perl-interpreter
 
 # We use git style patches
-BuildRequires: git
+BuildRequires: git-core
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -48,11 +53,6 @@ from the Google BoringSSL project and the OpenSSL project.
 %autosetup -n aws-lc-%{version} -S git -p1
 
 %build
-%if %{awslc_fips}
-# FIPS module boundary detection requires LTO to be disabled
-%define _lto_cflags %{nil}
-%endif
-
 # No rpath is set: the libraries install into %%{_libdir}, which is already on
 # the default linker search path. An $ORIGIN-relative rpath would be stripped
 # of its $ORIGIN by rpm/shell expansion and rejected by check-rpaths.
@@ -74,10 +74,10 @@ from the Google BoringSSL project and the OpenSSL project.
 
 %install
 %cmake_install
-rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
-rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
+rm -rf %{buildroot}%{_libdir}/crypto/cmake
+rm -rf %{buildroot}%{_libdir}/ssl/cmake
 
-rm -f %{buildroot}/%{_bindir}/aws-lc-openssl
+rm -f %{buildroot}%{_bindir}/aws-lc-openssl
 
 mkdir -p %{buildroot}%{_rpmmacrodir}
 echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
@@ -90,6 +90,10 @@ ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
 %check
 export GOPATH=$(pwd)/.gopath
 export GOMODCACHE=${GOPATH}/pkg/mod
+# all_tests.go only imports stdlib and in-module packages, so module graph
+# pruning keeps it offline despite the unused golang.org/x/crypto requirement
+# in go.mod. Fail loudly rather than hang if that ever stops being true.
+export GOPROXY=off
 # SClientTest requires network access unavailable in mock builds
 export GTEST_FILTER=-SClientTest.*
 go run util/all_tests.go -build-dir %{_vpath_builddir}
@@ -106,22 +110,36 @@ chmod -R u+w .gopath 2>/dev/null || true
 %package libs
 Summary: AWS-LC shared libraries
 
+# Third-party code compiled into libcrypto/libssl. The googletest, wycheproof
+# and vectors trees under third_party/ are test-only and are not shipped.
+Provides: bundled(fiat-crypto)
+Provides: bundled(jitterentropy)
+Provides: bundled(mldsa-native)
+Provides: bundled(mlkem-native)
+Provides: bundled(s2n-bignum)
+
 %description libs
-AWS-LC libraries
+The libcrypto-awslc and libssl-awslc shared libraries. These are name-suffixed
+so they can be installed alongside the system OpenSSL rather than replacing it.
 
 %files libs
+%license LICENSE
 %{_libdir}/libcrypto-awslc.so.*
 %{_libdir}/libssl-awslc.so.*
 
 %package devel
-Summary: AWS-LC development files from package %{name}
-Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Summary: Development files for AWS-LC
+# The .so symlinks here resolve into the libraries shipped by -libs, so depend
+# on that rather than on the base package, which holds only the tools.
+Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description devel
-AWS-LC development files from package %{name}.
+Headers, pkg-config files and linker symlinks needed to build against AWS-LC.
+Headers are installed under %{_includedir}/aws-lc so they do not collide with
+the system OpenSSL headers.
 
 %files devel
-%{_includedir}/aws-lc/openssl
+%{_includedir}/aws-lc/
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
 %{_libdir}/pkgconfig/aws-lc.pc
