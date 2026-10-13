@@ -1,14 +1,3 @@
-
-%define _docdir_fmt aws-lc
-
-%{!?make_verbose: %define make_verbose 0}
-%{!?_rpmmacrodir: %global _rpmmacrodir /usr/lib/rpm/macros.d}
-%{!?__cmake: %global __cmake cmake}
-
-%undefine __cmake_in_source_build
-
-%global source_date_epoch_from_changelog 0
-
 %global awslc_ver_maj 5
 %global awslc_ver_min 2
 %global awslc_ver_patch 0
@@ -71,7 +60,6 @@ from the Google BoringSSL project and the OpenSSL project.
 # ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
 # (crypto/libcrypto.map, ssl/libssl.map) automatically.
 %cmake \
-    -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
     -DFIPS=%{awslc_fips} \
     -DBUILD_SHARED_LIBS=1 \
@@ -82,8 +70,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1
 
-# use --define 'make_verbose 1' to enable verbose
-%(x='%{cmake_build}'; echo ${x/ --verbose})
+%cmake_build
 
 %install
 %cmake_install
