@@ -23,8 +23,19 @@ upstream tarball is fetched rather than committed.
 - `aws-lc-devel` — headers, pkg-config files, and linker symlinks
 
 Libraries and headers are name-suffixed and installed under `aws-lc/`, so the
-package coexists with the system OpenSSL instead of replacing it. The build
-runs the upstream test suite in `%check`.
+package coexists with the system OpenSSL instead of replacing it.
+
+## Tests
+
+`%check` runs upstream's unit tests via `util/all_tests.go` — `crypto_test`,
+`ssl_test`, `tool_openssl_test` and the isolated mem/rand/rwlock binaries.
+
+It does not run the other two legs of upstream's `run_tests` target: the
+`ssl/test/runner` TLS suite (a fork of Go's `crypto/tls` that handshakes
+against `libssl` through `bssl_shim`) and, on FIPS arches, the ACVP tests.
+Both import `golang.org/x/crypto`, and with no vendor directory they cannot be
+built in a network-isolated buildroot. That dependency is also the only reason
+`go.mod` requires `golang.org/x/crypto`; nothing we ship uses Go.
 
 ## FIPS mode
 

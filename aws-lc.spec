@@ -126,16 +126,29 @@ ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
 
 %check
+# This runs upstream's unit tests only: 27 invocations across crypto_test,
+# ssl_test, tool_openssl_test and the isolated mem/rand/rwlock binaries. The
+# other two legs of upstream's run_tests target are not run, because both need
+# golang.org/x/crypto and there is no vendor directory to satisfy it offline:
+# the ssl/test/runner TLS suite (a fork of Go's crypto/tls that handshakes
+# against libssl through bssl_shim) and, under FIPS, the ACVP tests.
 export GOPATH=$(pwd)/.gopath
 export GOMODCACHE=${GOPATH}/pkg/mod
-# all_tests.go only imports stdlib and in-module packages, so module graph
-# pruning keeps it offline despite the unused golang.org/x/crypto requirement
-# in go.mod. Fail loudly rather than hang if that ever stops being true.
+# all_tests.go imports only stdlib and in-module packages, so module graph
+# pruning keeps it offline. Fail loudly rather than hang if that ever changes.
 export GOPROXY=off
-# SClientTest requires network access unavailable in mock builds
-export GTEST_FILTER=-SClientTest.*
+
+# all_tests.go otherwise shards crypto_test runtime.NumCPU() ways, which
+# ignores cgroup CPU quotas and over-subscribes a constrained builder.
+export AWS_LC_NUM_TEST_WORKERS=%{_smp_build_ncpus}
+
+# These five SClientTest cases connect to amazon.com:443 through the s_client
+# tool. SClientTest.Help and SClientTest.NoConnect do not, so they still run.
+# ocsp_integration_test is the only other test doing real network I/O, and it
+# is a separate binary that all_tests.json does not reference.
+export GTEST_FILTER=-SClientTest.Connect:SClientTest.ConnectVerifyShowcerts:SClientTest.Cipher:SClientTest.Tls1_1:SClientTest.CipherAndTls1_1
+
 go run util/all_tests.go -build-dir %{_vpath_builddir}
-chmod -R u+w .gopath 2>/dev/null || true
 
 %files
 %doc README.md
