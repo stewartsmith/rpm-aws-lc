@@ -2,12 +2,8 @@
 %global awslc_ver_min 2
 %global awslc_ver_patch 0
 
-# AWS-LC supports FIPS mode on a subset of its target architectures. The hard
-# gate is the guard in util/fipstools/acvp/modulewrapper/main.cc, which only
-# accepts OPENSSL_X86_64, OPENSSL_ARM, OPENSSL_AARCH64, OPENSSL_PPC64LE,
-# OPENSSL_PPC32BE and OPENSSL_PPC64BE, and #errors out otherwise. Everything
-# else Fedora builds for (s390x, riscv64, i686, loongarch64) must therefore
-# build with FIPS disabled.
+# util/fipstools/acvp/modulewrapper/main.cc #errors on any other target, so
+# s390x, riscv64, i686 and loongarch64 must build with FIPS disabled.
 %global fips_arches x86_64 aarch64 ppc64le %{arm}
 
 %ifarch %{fips_arches}
@@ -25,44 +21,13 @@ Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: %autorelease
 Summary: AWS-LC cryptographic library
-# Upstream LICENSE is a summary and does not match the sources in two places,
-# so the tag below is derived by auditing every non-test source file in the
-# trees CMake actually compiles -- crypto/, ssl/, tool/, tool-openssl/,
-# include/, and the third_party/ subtrees pulled in by add_subdirectory or
-# #include:
-#
-#   crypto/, ssl/, tool/,     Apache-2.0 and ISC, plus ORs over
-#   tool-openssl/, include/     Apache-2.0/ISC/MIT. Two files carry no SPDX
-#                               tag and are public domain; see below.
-#   third_party/s2n-bignum    ORs over Apache-2.0/ISC/MIT-0
-#   third_party/fiat          MIT (no SPDX tags; see its LICENSE). Compiled in
-#                               via the p256/p384/p521 and curve25519 headers.
-#   third_party/jitterentropy BSD-3-Clause. Dual BSD/GPL-2.0 upstream, and
-#                               Amazon expressly elects BSD. Built unless
-#                               DISABLE_CPU_JITTER_ENTROPY, which we do not set.
-#
-# Every OR resolves to Apache-2.0 or ISC, both already required, so only MIT
-# (fiat), BSD-3-Clause (jitterentropy) and the public domain files add to the
-# set. The public domain code is compiled in on specific arches:
-#
-#   crypto/fipsmodule/md5/asm/md5-x86_64.pl  x86_64, via perlasm() in
-#     crypto/fipsmodule/CMakeLists.txt. "I hereby disclaim the copyright on
-#     this code and place it in the public domain."
-#   crypto/poly1305/poly1305_arm_asm.S  32-bit arm, guarded by OPENSSL_ARM.
-#     Taken from the public domain neon2 version in SUPERCOP.
-#
-# Upstream LICENSE names these, but they do not apply to what we build:
-#
-#   OpenSSL, SSLeay-standalone  AWS-LC relicensed all OpenSSL-derived code to
-#     Apache-2.0, as its LICENSE states. No compiled source carries SPDX
-#     OpenSSL, and none carries the legacy SSLeay license grant. The 188 files
-#     bearing the Eric Young cryptsoft copyright are all SPDX Apache-2.0 --
-#     that line is a copyright attribution to preserve, not a license grant.
-#   CC0-1.0  Upstream LICENSE attributes its CC0 section to the Keccak and AES
-#     reference implementations, but those are licensed otherwise:
-#     keccak1600.c is Apache-2.0 and aes_nohw.c is ISC. The public domain code
-#     above is a dedication rather than a CC0 grant, so Fedora's
-#     LicenseRef-Fedora-Public-Domain covers it.
+# Derived by auditing the compiled trees, not from upstream's LICENSE summary,
+# which names three licenses that do not apply to what we build. OpenSSL and
+# SSLeay-standalone: AWS-LC relicensed all OpenSSL-derived code to Apache-2.0,
+# and the Eric Young cryptsoft lines are copyright attributions, not grants.
+# CC0-1.0: the files upstream attributes it to are Apache-2.0 and ISC. MIT comes
+# from third_party/fiat and BSD-3-Clause from third_party/jitterentropy; the
+# public domain files are md5-x86_64.pl and poly1305_arm_asm.S.
 License: Apache-2.0 AND ISC AND MIT AND BSD-3-Clause AND LicenseRef-Fedora-Public-Domain
 URL: https://github.com/aws/aws-lc
 
@@ -91,12 +56,9 @@ from the Google BoringSSL project and the OpenSSL project.
 %autosetup -n aws-lc-%{version} -S git -p1
 
 %build
-# No rpath is set: the libraries install into %%{_libdir}, which is already on
-# the default linker search path. An $ORIGIN-relative rpath would be stripped
-# of its $ORIGIN by rpm/shell expansion and rejected by check-rpaths.
-#
-# ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
-# (crypto/libcrypto.map, ssl/libssl.map) automatically.
+# Do not add an $ORIGIN rpath here: rpm/shell expansion strips the $ORIGIN and
+# check-rpaths then rejects the result. %%{_libdir} needs no rpath anyway.
+# ENABLE_DIST_PKG applies the shipped symbol version scripts (crypto/*.map).
 %cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DFIPS=%{awslc_fips} \
@@ -109,6 +71,11 @@ from the Google BoringSSL project and the OpenSSL project.
     -DBUILD_TESTING=1
 
 %cmake_build
+
+# HTML API reference. doc.config sets BaseDirectory to "..", so run from util/.
+export GOPROXY=off
+mkdir -p html-doc
+(cd util && go run doc.go -config doc.config -out ../html-doc)
 
 %install
 %cmake_install
@@ -125,35 +92,27 @@ mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
 
+mkdir -p %{buildroot}%{_docdir}/%{name}-doc
+cp -a html-doc/. %{buildroot}%{_docdir}/%{name}-doc/
+install -p -m 0644 README.md %{buildroot}%{_docdir}/%{name}-doc/
+
 %check
-# This runs upstream's unit tests only: 27 invocations across crypto_test,
-# ssl_test, tool_openssl_test and the isolated mem/rand/rwlock binaries. The
-# other two legs of upstream's run_tests target are not run, because both need
-# golang.org/x/crypto and there is no vendor directory to satisfy it offline:
-# the ssl/test/runner TLS suite (a fork of Go's crypto/tls that handshakes
-# against libssl through bssl_shim) and, under FIPS, the ACVP tests.
+# Unit tests only; see the Tests section of README.md for what is left out.
 export GOPATH=$(pwd)/.gopath
 export GOMODCACHE=${GOPATH}/pkg/mod
-# all_tests.go imports only stdlib and in-module packages, so module graph
-# pruning keeps it offline. Fail loudly rather than hang if that ever changes.
 export GOPROXY=off
-
-# all_tests.go otherwise shards crypto_test runtime.NumCPU() ways, which
-# ignores cgroup CPU quotas and over-subscribes a constrained builder.
+# Otherwise shards by runtime.NumCPU(), which ignores cgroup CPU quotas.
 export AWS_LC_NUM_TEST_WORKERS=%{_smp_build_ncpus}
-
-# These five SClientTest cases connect to amazon.com:443 through the s_client
-# tool. SClientTest.Help and SClientTest.NoConnect do not, so they still run.
-# ocsp_integration_test is the only other test doing real network I/O, and it
-# is a separate binary that all_tests.json does not reference.
+# These five connect to amazon.com:443; SClientTest.Help and .NoConnect do not.
 export GTEST_FILTER=-SClientTest.Connect:SClientTest.ConnectVerifyShowcerts:SClientTest.Cipher:SClientTest.Tls1_1:SClientTest.CipherAndTls1_1
 
 go run util/all_tests.go -build-dir %{_vpath_builddir}
 
 %files
-%doc README.md
-%doc NOTICE
+# NOTICE is the Apache-2.0 4(d) attribution, so %%license rather than %%doc:
+# it has to survive --excludedocs. Repeated in every installable subpackage.
 %license LICENSE
+%license NOTICE
 
 %{_bindir}/aws-lc-bssl
 %{_bindir}/aws-lc-c_rehash
@@ -161,8 +120,7 @@ go run util/all_tests.go -build-dir %{_vpath_builddir}
 %package libs
 Summary: AWS-LC shared libraries
 
-# Third-party code compiled into libcrypto/libssl. The googletest, wycheproof
-# and vectors trees under third_party/ are test-only and are not shipped.
+# Compiled into libcrypto/libssl. The other third_party/ trees are test-only.
 Provides: bundled(fiat-crypto)
 Provides: bundled(jitterentropy)
 Provides: bundled(mldsa-native)
@@ -175,13 +133,13 @@ so they can be installed alongside the system OpenSSL rather than replacing it.
 
 %files libs
 %license LICENSE
+%license NOTICE
 %{_libdir}/libcrypto-awslc.so.*
 %{_libdir}/libssl-awslc.so.*
 
 %package devel
 Summary: Development files for AWS-LC
-# The .so symlinks here resolve into the libraries shipped by -libs, so depend
-# on that rather than on the base package, which holds only the tools.
+# The .so symlinks resolve into -libs, not the base package, which is tools only.
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description devel
@@ -190,8 +148,6 @@ Headers are installed under %{_includedir}/aws-lc so they do not collide with
 the system OpenSSL headers.
 
 %files devel
-# Upstream guidance for writing code against AWS-LC: PORTING.md covers moving
-# from OpenSSL, API-CONVENTIONS.md the library's own conventions.
 %doc API-CONVENTIONS.md
 %doc PORTING.md
 %{_includedir}/aws-lc/
@@ -204,6 +160,22 @@ the system OpenSSL headers.
 %dir %{_libdir}/aws-lc
 %{_libdir}/aws-lc/libcrypto.so
 %{_libdir}/aws-lc/libssl.so
+
+%package doc
+Summary: API reference documentation for AWS-LC
+BuildArch: noarch
+
+%description doc
+HTML reference documentation for the AWS-LC public headers, generated from the
+header comments by upstream's util/doc.go. Start at
+%{_docdir}/%{name}-doc/headers.html.
+
+%files doc
+%license LICENSE
+%license NOTICE
+# README.md is installed into this directory, not listed with %%doc, which would
+# resolve to the same path and be listed twice.
+%{_docdir}/%{name}-doc
 
 %changelog
 %autochangelog
