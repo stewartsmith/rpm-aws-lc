@@ -43,8 +43,6 @@ BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: golang
 BuildRequires: perl-interpreter
-
-# We use git style patches
 BuildRequires: git-core
 
 %description
@@ -79,14 +77,14 @@ mkdir -p html-doc
 
 %install
 %cmake_install
+# Drop upstream's CMake config files rather than relocate them to
+# %%{_libdir}/cmake: they export find_package(crypto) and find_package(ssl),
+# names far too generic to claim, and their install paths would have this
+# package own %%{_libdir}/crypto and %%{_libdir}/ssl. Consumers use pkg-config.
 rm -rf %{buildroot}%{_libdir}/crypto/cmake
 rm -rf %{buildroot}%{_libdir}/ssl/cmake
 
 rm -f %{buildroot}%{_bindir}/aws-lc-openssl
-
-mkdir -p %{buildroot}%{_rpmmacrodir}
-echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
-    > %{buildroot}%{_rpmmacrodir}/macros.%{name}
 
 mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
@@ -154,7 +152,6 @@ the system OpenSSL headers.
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
 %{_libdir}/pkgconfig/aws-lc.pc
-%{_rpmmacrodir}/macros.%{name}
 %{_libdir}/libcrypto-awslc.so
 %{_libdir}/libssl-awslc.so
 %dir %{_libdir}/aws-lc
