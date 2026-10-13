@@ -190,6 +190,10 @@ Headers are installed under %{_includedir}/aws-lc so they do not collide with
 the system OpenSSL headers.
 
 %files devel
+# Upstream guidance for writing code against AWS-LC: PORTING.md covers moving
+# from OpenSSL, API-CONVENTIONS.md the library's own conventions.
+%doc API-CONVENTIONS.md
+%doc PORTING.md
 %{_includedir}/aws-lc/
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
