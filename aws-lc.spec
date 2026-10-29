@@ -9,17 +9,18 @@
 %global source_date_epoch_from_changelog 0
 
 %global awslc_ver_maj 5
-%global awslc_ver_min 11
+%global awslc_ver_min 12
 %global awslc_ver_patch 0
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 2%{?dist}
+Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
 License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
+Source1: aws-lc-provider.cnf
 
 # Accept the "PROFILE=SYSTEM" (crypto-policies) cipher string by mapping
 # it to AWS-LC's default cipher list instead of returning an error.
@@ -28,6 +29,7 @@ Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
 # Search path for aws-lc-sys (Rust) system-library auto-detection; the
 # directory holds only AWS-LC symlinks so it cannot resolve to OpenSSL.
 Patch: aws-lc-5.11.0-pkgconfig-awslc-libdir.patch
+Patch: aws-lc-5.12.0-rehash.patch
 
 BuildRequires: cmake >= 3.0
 BuildRequires: gcc
@@ -39,6 +41,7 @@ BuildRequires: bindgen-cli
 
 # We use git style patches
 BuildRequires: git
+Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description
 AWS-LC is a general-purpose cryptographic library maintained by the
@@ -72,6 +75,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
     -DGENERATE_RUST_BINDINGS=ON \
+    -DBUILD_AWSLC_PROVIDER=ON \
     -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
     -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
 
@@ -83,8 +87,6 @@ from the Google BoringSSL project and the OpenSSL project.
 rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
 rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
 
-rm -f %{buildroot}/%{_bindir}/aws-lc-openssl
-
 mkdir -p %{buildroot}%{_rpmmacrodir}
 echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
     > %{buildroot}%{_rpmmacrodir}/macros.%{name}
@@ -94,6 +96,9 @@ ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
 
 mv %{buildroot}%{_includedir}/rust_wrapper.h %{buildroot}%{_includedir}/aws-lc/
+
+install -m 755 -d %{buildroot}%{_sysconfdir}/pki/tls/openssl.d
+install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/pki/tls/openssl.d/aws-lc-provider.cnf
 
 %check
 export GOPATH=$(pwd)/.gopath
@@ -108,11 +113,20 @@ export AWSLC_CRYPTO_POLICY_FILE=%{_builddir}/no-such-opensslcnf.config
 go run util/all_tests.go -build-dir %{_vpath_builddir}
 chmod -R u+w .gopath 2>/dev/null || true
 
+# Run provider tests
+%{_vpath_builddir}/provider/awslc_provider_test
+%{_vpath_builddir}/provider/awslc_provider_backend_test
+
+# This Cmake target will check the linkage situation in the provider by
+# making sure that all the symbols come from the libraries we expect them to.
+%{__cmake} --build %{_vpath_builddir} --target awslc_provider_linkage_test
+
 %files
 %doc README.md
 %doc NOTICE
 %license LICENSE
 
+%{_bindir}/aws-lc-openssl
 %{_bindir}/aws-lc-bssl
 %{_bindir}/aws-lc-c_rehash
 
@@ -130,6 +144,7 @@ AWS-LC libraries
 %package devel
 Summary: AWS-LC development files from package %{name}
 Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description devel
 AWS-LC development files from package %{name}.
@@ -149,6 +164,19 @@ AWS-LC development files from package %{name}.
 %{_libdir}/aws-lc/libssl.so
 %dir %{_datadir}/rust
 %{_datadir}/rust/aws_lc_bindings.rs
+
+%package provider
+Summary: AWS-LC provider for OpenSSL
+BuildRequires: openssl-devel
+Requires: openssl-libs
+Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+
+%description provider
+AWS-LC provider for OpenSSL
+
+%files provider
+%attr(0755,root,root) %{_libdir}/ossl-modules/awslc.so
+%config(noreplace) %{_sysconfdir}/pki/tls/openssl.d/aws-lc-provider.cnf
 
 %changelog
 %autochangelog

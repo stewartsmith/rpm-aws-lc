@@ -1,0 +1,16 @@
+diff -Naur a/tool-openssl/c_rehash.sh b/tool-openssl/c_rehash.sh
+--- a/tool-openssl/c_rehash.sh	2026-10-09 18:38:56.422757074 +0000
++++ b/tool-openssl/c_rehash.sh	2026-10-09 18:40:09.672687707 +0000
+@@ -8,9 +8,9 @@
+ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+ 
+ # Check for openssl binary in same directory
+-if [ -x "${SCRIPT_DIR}/openssl" ]; then
+-    "${SCRIPT_DIR}/openssl" rehash "$@"
++if [ -x "${SCRIPT_DIR}/aws-lc-openssl" ]; then
++    "${SCRIPT_DIR}/aws-lc-openssl" rehash "$@"
+ else
+-    echo "Error: AWS-LC openssl binary not found at '${SCRIPT_DIR}/openssl'"
++    echo "Error: AWS-LC openssl binary not found at '${SCRIPT_DIR}/aws-lc-openssl'"
+     exit 1
+ fi
