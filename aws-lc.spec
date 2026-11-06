@@ -144,7 +144,7 @@ AWS-LC libraries
 
 %package devel
 Summary: AWS-LC development files from package %{name}
-Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+# The .so symlinks resolve into -libs, not the base package, which is tools only.
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description devel
