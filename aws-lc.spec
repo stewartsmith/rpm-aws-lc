@@ -114,8 +114,6 @@ export GOMODCACHE=${GOPATH}/pkg/mod
 # all_tests.go imports only stdlib and in-module packages, so module graph
 # pruning keeps it offline. Fail loudly rather than hang if that ever changes.
 export GOPROXY=off
-# SClientTest requires network access unavailable in mock builds
-export GTEST_FILTER=-SClientTest.*
 # The ssl tests assert AWS-LC's built-in defaults, which the buildroot's
 # crypto-policies back-end would override now that ENABLE_CRYPTO_POLICIES is
 # on. Point the loader at a missing file; the crypto-policy tests supply their
