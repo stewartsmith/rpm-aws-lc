@@ -86,8 +86,12 @@ from the Google BoringSSL project and the OpenSSL project.
 
 %install
 %cmake_install
-rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
-rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
+# Drop upstream's CMake config files rather than relocate them to
+# %%{_libdir}/cmake: they export find_package(crypto) and find_package(ssl),
+# names far too generic to claim, and their install paths would have this
+# package own %%{_libdir}/crypto and %%{_libdir}/ssl. Consumers use pkg-config.
+rm -rf %{buildroot}%{_libdir}/crypto/cmake
+rm -rf %{buildroot}%{_libdir}/ssl/cmake
 
 mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
