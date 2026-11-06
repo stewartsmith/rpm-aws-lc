@@ -25,6 +25,7 @@ upstream tarball is fetched rather than committed.
   generated Rust bindings used by the `aws-lc-sys` crate
 - `aws-lc-provider` — an OpenSSL 3 provider (`ossl-modules/awslc.so`) backed
   by AWS-LC
+- `aws-lc-doc` — HTML API reference generated from the public headers
 
 Libraries and headers are name-suffixed and installed under `aws-lc/`, so the
 package coexists with the system OpenSSL instead of replacing it. The

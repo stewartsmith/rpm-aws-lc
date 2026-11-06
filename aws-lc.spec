@@ -90,6 +90,11 @@ from the Google BoringSSL project and the OpenSSL project.
 
 %cmake_build
 
+# HTML API reference. doc.config sets BaseDirectory to "..", so run from util/.
+export GOPROXY=off
+mkdir -p html-doc
+(cd util && go run doc.go -config doc.config -out ../html-doc)
+
 %install
 %cmake_install
 # Drop upstream's CMake config files rather than relocate them to
@@ -107,6 +112,10 @@ mv %{buildroot}%{_includedir}/rust_wrapper.h %{buildroot}%{_includedir}/aws-lc/
 
 install -m 755 -d %{buildroot}%{_sysconfdir}/pki/tls/openssl.d
 install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/pki/tls/openssl.d/aws-lc-provider.cnf
+
+mkdir -p %{buildroot}%{_docdir}/%{name}-doc
+cp -a html-doc/. %{buildroot}%{_docdir}/%{name}-doc/
+install -p -m 0644 README.md %{buildroot}%{_docdir}/%{name}-doc/
 
 %check
 export GOPATH=$(pwd)/.gopath
@@ -132,7 +141,6 @@ go run util/all_tests.go -build-dir %{_vpath_builddir}
 %{__cmake} --build %{_vpath_builddir} --target awslc_provider_linkage_test
 
 %files
-%doc README.md
 # NOTICE is the Apache-2.0 4(d) attribution, so %%license rather than %%doc:
 # it has to survive --excludedocs.
 %license LICENSE
@@ -205,6 +213,22 @@ to the default provider for anything AWS-LC does not provide.
 %files provider
 %attr(0755,root,root) %{_libdir}/ossl-modules/awslc.so
 %config(noreplace) %{_sysconfdir}/pki/tls/openssl.d/aws-lc-provider.cnf
+
+%package doc
+Summary: API reference documentation for AWS-LC
+BuildArch: noarch
+
+%description doc
+HTML reference documentation for the AWS-LC public headers, generated from the
+header comments by upstream's util/doc.go. Start at
+%{_docdir}/%{name}-doc/headers.html.
+
+%files doc
+%license LICENSE
+%license NOTICE
+# README.md is installed into this directory, not listed with %%doc, which would
+# resolve to the same path and be listed twice.
+%{_docdir}/%{name}-doc
 
 %changelog
 %autochangelog
