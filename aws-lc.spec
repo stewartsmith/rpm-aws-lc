@@ -36,16 +36,15 @@ Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
 Patch: aws-lc-5.11.0-pkgconfig-awslc-libdir.patch
 Patch: aws-lc-5.12.0-rehash.patch
 
-BuildRequires: cmake >= 3.0
+BuildRequires: cmake
 BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: clang
 BuildRequires: golang
 BuildRequires: perl-interpreter
 BuildRequires: bindgen-cli
+BuildRequires: git-core
 
-# We use git style patches
-BuildRequires: git
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description
