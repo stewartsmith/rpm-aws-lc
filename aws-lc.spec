@@ -1,13 +1,3 @@
-%define _docdir_fmt aws-lc
-
-%{!?make_verbose: %define make_verbose 0}
-%{!?_rpmmacrodir: %global _rpmmacrodir /usr/lib/rpm/macros.d}
-%{!?__cmake: %global __cmake cmake}
-
-%undefine __cmake_in_source_build
-
-%global source_date_epoch_from_changelog 0
-
 %global awslc_ver_maj 5
 %global awslc_ver_min 12
 %global awslc_ver_patch 0
@@ -78,7 +68,6 @@ from the Google BoringSSL project and the OpenSSL project.
 # OpenSSL back-end. The AWSLC_CRYPTO_POLICY_FILE override points AWS-LC at the
 # dedicated aws-lc.config back-end that newer crypto-policies generated.
 %cmake \
-    -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
     -DFIPS=%{awslc_fips} \
     -DBUILD_SHARED_LIBS=1 \
@@ -93,8 +82,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DGENERATE_RUST_BINDINGS=ON \
     -DBUILD_AWSLC_PROVIDER=ON
 
-# use --define 'make_verbose 1' to enable verbose
-%(x='%{cmake_build}'; echo ${x/ --verbose})
+%cmake_build
 
 %install
 %cmake_install
