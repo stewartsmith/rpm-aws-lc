@@ -111,6 +111,9 @@ install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/pki/tls/openssl.d/aws-lc-pr
 %check
 export GOPATH=$(pwd)/.gopath
 export GOMODCACHE=${GOPATH}/pkg/mod
+# all_tests.go imports only stdlib and in-module packages, so module graph
+# pruning keeps it offline. Fail loudly rather than hang if that ever changes.
+export GOPROXY=off
 # SClientTest requires network access unavailable in mock builds
 export GTEST_FILTER=-SClientTest.*
 # The ssl tests assert AWS-LC's built-in defaults, which the buildroot's
@@ -119,7 +122,6 @@ export GTEST_FILTER=-SClientTest.*
 # own fixtures through this same variable.
 export AWSLC_CRYPTO_POLICY_FILE=%{_builddir}/no-such-opensslcnf.config
 go run util/all_tests.go -build-dir %{_vpath_builddir}
-chmod -R u+w .gopath 2>/dev/null || true
 
 # Run provider tests
 %{_vpath_builddir}/provider/awslc_provider_test
