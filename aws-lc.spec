@@ -174,6 +174,8 @@ against AWS-LC. Headers are installed under %{_includedir}/aws-lc so they do
 not collide with the system OpenSSL headers.
 
 %files devel
+%doc API-CONVENTIONS.md
+%doc PORTING.md
 %dir %{_includedir}/aws-lc
 %{_includedir}/aws-lc/openssl
 %{_includedir}/aws-lc/rust_wrapper.h
