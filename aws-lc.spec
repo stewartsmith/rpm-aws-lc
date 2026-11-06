@@ -152,7 +152,8 @@ Provides: bundled(mlkem-native)
 Provides: bundled(s2n-bignum)
 
 %description libs
-AWS-LC libraries
+The libcrypto-awslc and libssl-awslc shared libraries. These are name-suffixed
+so they can be installed alongside the system OpenSSL rather than replacing it.
 
 %files libs
 %license LICENSE
@@ -161,12 +162,14 @@ AWS-LC libraries
 %{_libdir}/libssl-awslc.so.*
 
 %package devel
-Summary: AWS-LC development files from package %{name}
+Summary: Development files for AWS-LC
 # The .so symlinks resolve into -libs, not the base package, which is tools only.
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description devel
-AWS-LC development files from package %{name}.
+Headers, pkg-config files, linker symlinks and Rust bindings needed to build
+against AWS-LC. Headers are installed under %{_includedir}/aws-lc so they do
+not collide with the system OpenSSL headers.
 
 %files devel
 %dir %{_includedir}/aws-lc
@@ -190,7 +193,10 @@ Requires: openssl-libs
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description provider
-AWS-LC provider for OpenSSL
+An OpenSSL 3 provider module that implements OpenSSL algorithms using
+AWS-LC. The configuration snippet in %{_sysconfdir}/pki/tls/openssl.d
+activates it and makes OpenSSL prefer AWS-LC's implementations, falling back
+to the default provider for anything AWS-LC does not provide.
 
 %files provider
 %attr(0755,root,root) %{_libdir}/ossl-modules/awslc.so
