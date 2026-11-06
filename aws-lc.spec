@@ -55,6 +55,10 @@ from the Google BoringSSL project and the OpenSSL project.
 # FIPS module boundary detection requires LTO to be disabled
 %define _lto_cflags %{nil}
 
+# Do not add an $ORIGIN rpath here: the libraries install into %%{_libdir},
+# which needs no rpath, and $ORIGIN does not survive to the linker intact, so
+# check-rpaths rejects the result.
+#
 # ENABLE_DIST_PKG applies AWS-LC's shipped symbol version scripts
 # (crypto/libcrypto.map, ssl/libssl.map) automatically.
 #
@@ -75,9 +79,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
     -DGENERATE_RUST_BINDINGS=ON \
-    -DBUILD_AWSLC_PROVIDER=ON \
-    -DCMAKE_SHARED_LINKER_FLAGS='-Wl,-rpath,$ORIGIN' \
-    -DCMAKE_EXE_LINKER_FLAGS='-Wl,-rpath,$ORIGIN/../%{_lib}'
+    -DBUILD_AWSLC_PROVIDER=ON
 
 # use --define 'make_verbose 1' to enable verbose
 %(x='%{cmake_build}'; echo ${x/ --verbose})
