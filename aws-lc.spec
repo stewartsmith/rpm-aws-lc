@@ -101,10 +101,6 @@ from the Google BoringSSL project and the OpenSSL project.
 rm -rf %{buildroot}%{_prefix}/%{_lib}/crypto/cmake
 rm -rf %{buildroot}%{_prefix}/%{_lib}/ssl/cmake
 
-mkdir -p %{buildroot}%{_rpmmacrodir}
-echo '%%%(echo %{name} |tr '-' '_')_prefix %{_prefix}' \
-    > %{buildroot}%{_rpmmacrodir}/macros.%{name}
-
 mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
@@ -170,7 +166,6 @@ AWS-LC development files from package %{name}.
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
 %{_libdir}/pkgconfig/aws-lc.pc
-%{_rpmmacrodir}/macros.%{name}
 %{_libdir}/libcrypto-awslc.so
 %{_libdir}/libssl-awslc.so
 %dir %{_libdir}/aws-lc
