@@ -124,8 +124,10 @@ chmod -R u+w .gopath 2>/dev/null || true
 
 %files
 %doc README.md
-%doc NOTICE
+# NOTICE is the Apache-2.0 4(d) attribution, so %%license rather than %%doc:
+# it has to survive --excludedocs.
 %license LICENSE
+%license NOTICE
 
 %{_bindir}/aws-lc-openssl
 %{_bindir}/aws-lc-bssl
@@ -139,6 +141,8 @@ Requires: crypto-policies >= 20260811-1
 AWS-LC libraries
 
 %files libs
+%license LICENSE
+%license NOTICE
 %{_libdir}/libcrypto-awslc.so.*
 %{_libdir}/libssl-awslc.so.*
 
