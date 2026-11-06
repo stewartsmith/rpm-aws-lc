@@ -12,6 +12,21 @@
 %global awslc_ver_min 12
 %global awslc_ver_patch 0
 
+# util/fipstools/acvp/modulewrapper/main.cc #errors on any other target, so
+# s390x, riscv64, i686 and loongarch64 must build with FIPS disabled.
+%global fips_arches x86_64 aarch64 ppc64le %{arm}
+
+%ifarch %{fips_arches}
+%global awslc_fips 1
+%else
+%global awslc_fips 0
+%endif
+
+%if %{awslc_fips}
+# FIPS module boundary detection requires LTO to be disabled.
+%global _lto_cflags %{nil}
+%endif
+
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: 1%{?dist}
@@ -52,9 +67,6 @@ from the Google BoringSSL project and the OpenSSL project.
 %autosetup -n aws-lc-%{version} -S git -p1
 
 %build
-# FIPS module boundary detection requires LTO to be disabled
-%define _lto_cflags %{nil}
-
 # Do not add an $ORIGIN rpath here: the libraries install into %%{_libdir},
 # which needs no rpath, and $ORIGIN does not survive to the linker intact, so
 # check-rpaths rejects the result.
@@ -68,7 +80,7 @@ from the Google BoringSSL project and the OpenSSL project.
 %cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFIPS=1 \
+    -DFIPS=%{awslc_fips} \
     -DBUILD_SHARED_LIBS=1 \
     -DENABLE_PRE_SONAME_BUILD=0 \
     -DENABLE_DIST_PKG=1 \
