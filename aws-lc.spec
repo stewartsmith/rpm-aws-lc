@@ -21,7 +21,14 @@ Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
 Release: 1%{?dist}
 Summary: AWS-LC cryptographic library
-License: Apache-2.0 OR ISC OR BSD-3-Clause OR MIT OR CC0-1.0 OR OpenSSL OR SSLeay-standalone
+# Derived by auditing the compiled trees, not from upstream's LICENSE summary,
+# which names three licenses that do not apply to what we build. OpenSSL and
+# SSLeay-standalone: AWS-LC relicensed all OpenSSL-derived code to Apache-2.0,
+# and the Eric Young cryptsoft lines are copyright attributions, not grants.
+# CC0-1.0: the files upstream attributes it to are Apache-2.0 and ISC. MIT comes
+# from third_party/fiat and BSD-3-Clause from third_party/jitterentropy; the
+# public domain files are md5-x86_64.pl and poly1305_arm_asm.S.
+License: Apache-2.0 AND ISC AND MIT AND BSD-3-Clause AND LicenseRef-Fedora-Public-Domain
 URL: https://github.com/aws/aws-lc
 
 Source0: https://github.com/aws/aws-lc/archive/refs/tags/v%{version}.tar.gz#/aws-lc-%{version}.tar.gz
