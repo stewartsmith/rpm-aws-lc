@@ -137,6 +137,13 @@ chmod -R u+w .gopath 2>/dev/null || true
 Summary: AWS-LC shared libraries
 Requires: crypto-policies >= 20260811-1
 
+# Compiled into libcrypto/libssl. The other third_party/ trees are test-only.
+Provides: bundled(fiat-crypto)
+Provides: bundled(jitterentropy)
+Provides: bundled(mldsa-native)
+Provides: bundled(mlkem-native)
+Provides: bundled(s2n-bignum)
+
 %description libs
 AWS-LC libraries
 
