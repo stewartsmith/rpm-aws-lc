@@ -119,6 +119,8 @@ export GOPROXY=off
 # on. Point the loader at a missing file; the crypto-policy tests supply their
 # own fixtures through this same variable.
 export AWSLC_CRYPTO_POLICY_FILE=%{_builddir}/no-such-opensslcnf.config
+# Otherwise shards by runtime.NumCPU(), which ignores cgroup CPU quotas.
+export AWS_LC_NUM_TEST_WORKERS=%{_smp_build_ncpus}
 go run util/all_tests.go -build-dir %{_vpath_builddir}
 
 # Run provider tests
