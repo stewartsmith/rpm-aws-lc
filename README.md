@@ -15,7 +15,7 @@ upstream tarball is fetched rather than committed.
 | `sources` | SHA512 manifest of the upstream tarball |
 | `*.patch` | Downstream patches, applied in spec order |
 | `aws-lc-provider.cnf` | OpenSSL config snippet that loads the provider |
-| `amzn-changelog` | Changelog entries consumed by `%autochangelog` |
+| `changelog` | Curated changelog entries, appended by `%autochangelog` |
 
 ## Packages
 

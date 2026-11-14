@@ -19,7 +19,7 @@
 
 Name: aws-lc
 Version: %{awslc_ver_maj}.%{awslc_ver_min}.%{awslc_ver_patch}
-Release: 1%{?dist}
+Release: %autorelease
 Summary: AWS-LC cryptographic library
 # Derived by auditing the compiled trees, not from upstream's LICENSE summary,
 # which names three licenses that do not apply to what we build. OpenSSL and
