@@ -167,7 +167,14 @@ go run util/all_tests.go -build-dir %{_vpath_builddir}
 
 %package libs
 Summary: AWS-LC shared libraries
+# 20260811 is the first crypto-policies to generate the aws-lc.config back-end.
+# AL2023's crypto-policies predates it; without the file AWS-LC falls back to
+# its built-in defaults, so do not make -libs uninstallable there.
+%if 0%{?amzn} == 2023
+Requires: crypto-policies
+%else
 Requires: crypto-policies >= 20260811-1
+%endif
 
 # Compiled into libcrypto/libssl. The other third_party/ trees are test-only.
 Provides: bundled(fiat-crypto)
