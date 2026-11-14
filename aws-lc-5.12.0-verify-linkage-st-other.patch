@@ -1,0 +1,32 @@
+provider: skip st_other when parsing objdump -T in verify_linkage.sh
+
+objdump -T prints a symbol's st_other between the version and the name
+when it is non-zero. On ppc64le (ELFv2) that is the case for every
+function with a separate local entry point, which objdump shows as
+0x60:
+
+  0000000000000000      DF *UND*  0000000000000000 (AWS_LC_1.0) 0x60 SHA256_Init
+
+The script took $(NF - 1) as the version, so on ppc64le it recorded
+those imports as version "0x60" and failed awslc_provider_linkage_test,
+even though the module's linkage is correct. Skip a hex st_other field
+when it is present.
+
+--- a/provider/test/verify_linkage.sh
++++ b/provider/test/verify_linkage.sh
+@@ -105,7 +105,14 @@
+   objdump -T "${MODULE}" 2>/dev/null |
+     awk '
+       /\*UND\*/ {
+-        version = $(NF - 1)
++        # objdump prints a non-zero st_other between the version and the name,
++        # e.g. "(AWS_LC_1.0) 0x60 SHA256_Init" for ppc64le ELFv2 functions with
++        # a local entry point. Skip it so it is not taken for the version.
++        i = NF - 1
++        if ($i ~ /^0x[0-9a-fA-F]+$/) {
++          i--
++        }
++        version = $i
+         gsub(/[()]/, "", version)
+         print $NF, version
+       }

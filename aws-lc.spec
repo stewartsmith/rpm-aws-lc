@@ -42,6 +42,9 @@ Patch: aws-lc-5.2.0-profile-system-cipher-string.patch
 # directory holds only AWS-LC symlinks so it cannot resolve to OpenSSL.
 Patch: aws-lc-5.11.0-pkgconfig-awslc-libdir.patch
 Patch: aws-lc-5.12.0-rehash.patch
+# awslc_provider_linkage_test misreads objdump -T output on ppc64le, where a
+# non-zero st_other column sits between the version and the symbol name.
+Patch: aws-lc-5.12.0-verify-linkage-st-other.patch
 
 BuildRequires: cmake
 BuildRequires: gcc
