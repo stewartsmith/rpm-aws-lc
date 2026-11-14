@@ -5,7 +5,10 @@
 #
 #     make -f .copr/Makefile srpm outdir=<dir> spec=<path to spec>
 
-spec   ?= aws-lc.spec
+# Ignore the spec= that COPR passes. It is the clone directory, not the spec,
+# whenever the package's "Spec File" field is empty, and rpmautospec then
+# guesses the spec name from the directory name. This repo has one spec.
+SPEC   := aws-lc.spec
 outdir ?= $(CURDIR)
 
 # rpmautospec does not pull in the git binary, which it needs to read history.
@@ -23,10 +26,10 @@ srpm:
 	# for dist-git; nothing in COPR does it for us, and the fallback macros in
 	# redhat-rpm-config are stubs that yield release 1 and a placeholder
 	# changelog. Same file twice means rewrite in place. Idempotent.
-	rpmautospec process-distgit "$(spec)" "$(spec)"
+	rpmautospec process-distgit "$(SPEC)" "$(SPEC)"
 	# Source0 is in no lookaside cache, so fetch and verify it here.
-	spectool -g -S -C "$(CURDIR)" "$(spec)"
+	spectool -g -S -C "$(CURDIR)" "$(SPEC)"
 	sed -E 's/^SHA512 \((.*)\) = (.*)$$/\2  \1/' sources | sha512sum -c -
-	rpmbuild -bs "$(spec)" \
+	rpmbuild -bs "$(SPEC)" \
 	  --define "_sourcedir $(CURDIR)" \
 	  --define "_srcrpmdir $(outdir)"
