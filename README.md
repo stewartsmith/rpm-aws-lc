@@ -64,3 +64,33 @@ target it does not recognise, which is what `s390x`, `riscv64`, `i686`, and
 spectool -g aws-lc.spec    # fetch the tarball listed in sources
 rpmbuild -ba aws-lc.spec
 ```
+
+## Fedora COPR
+
+COPR builds this repo directly via the `make_srpm` source build method; the
+tarball is fetched at SRPM time by `.copr/Makefile` rather than committed.
+
+`.copr/Makefile` also runs `rpmautospec process-distgit` to expand
+`%autorelease` and `%autochangelog` from git history, which is what Koji does
+for dist-git. Nothing in COPR does it for us, and the fallback macros in
+`redhat-rpm-config` are stubs that yield release 1 and a placeholder
+changelog. This mirrors COPR's own documented recipe and Fedora's `llvm`
+packaging.
+
+Note that `%autochangelog` reads `changelog` from git, not from the working
+tree, so entries only take effect once committed.
+
+```sh
+copr-cli add-package-scm aws-lc --name aws-lc \
+  --clone-url <public clone url> --commit <branch> \
+  --spec aws-lc.spec --type git --method make_srpm
+copr-cli build-package aws-lc --name aws-lc
+```
+
+To reproduce COPR's SRPM step, run it against a clone rather than your working
+tree — `process-distgit` rewrites the spec in place:
+
+```sh
+git clone . /tmp/aws-lc-srpm && cd /tmp/aws-lc-srpm
+make -f .copr/Makefile srpm outdir=/tmp/srpm
+```
