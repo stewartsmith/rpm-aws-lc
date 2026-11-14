@@ -12,6 +12,14 @@
 %global awslc_fips 0
 %endif
 
+# Rust bindings for the aws-lc-sys crate need bindgen-cli, which AL2023 lacks.
+# Old-style bcond: AL2023's rpm 4.16 predates %%bcond with a default value.
+%if 0%{?amzn} == 2023
+%bcond_with rust_bindings
+%else
+%bcond_without rust_bindings
+%endif
+
 %if %{awslc_fips}
 # FIPS module boundary detection requires LTO to be disabled.
 %global _lto_cflags %{nil}
@@ -52,7 +60,9 @@ BuildRequires: gcc-c++
 BuildRequires: clang
 BuildRequires: golang
 BuildRequires: perl-interpreter
+%if %{with rust_bindings}
 BuildRequires: bindgen-cli
+%endif
 BuildRequires: git-core
 
 Requires: %{name}-libs%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
@@ -88,7 +98,7 @@ from the Google BoringSSL project and the OpenSSL project.
     -DDISABLE_GO=0 \
     -DDISABLE_PERL=0 \
     -DBUILD_TESTING=1 \
-    -DGENERATE_RUST_BINDINGS=ON \
+    -DGENERATE_RUST_BINDINGS=%{?with_rust_bindings:ON}%{!?with_rust_bindings:OFF} \
     -DBUILD_AWSLC_PROVIDER=ON
 
 %cmake_build
@@ -111,7 +121,9 @@ mkdir -p %{buildroot}%{_libdir}/aws-lc
 ln -sf %{_libdir}/libcrypto-awslc.so %{buildroot}%{_libdir}/aws-lc/libcrypto.so
 ln -sf %{_libdir}/libssl-awslc.so %{buildroot}%{_libdir}/aws-lc/libssl.so
 
+%if %{with rust_bindings}
 mv %{buildroot}%{_includedir}/rust_wrapper.h %{buildroot}%{_includedir}/aws-lc/
+%endif
 
 install -m 755 -d %{buildroot}%{_sysconfdir}/pki/tls/openssl.d
 install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/pki/tls/openssl.d/aws-lc-provider.cnf
@@ -189,7 +201,6 @@ not collide with the system OpenSSL headers.
 %doc PORTING.md
 %dir %{_includedir}/aws-lc
 %{_includedir}/aws-lc/openssl
-%{_includedir}/aws-lc/rust_wrapper.h
 %{_libdir}/pkgconfig/libcrypto-awslc.pc
 %{_libdir}/pkgconfig/libssl-awslc.pc
 %{_libdir}/pkgconfig/aws-lc.pc
@@ -198,8 +209,11 @@ not collide with the system OpenSSL headers.
 %dir %{_libdir}/aws-lc
 %{_libdir}/aws-lc/libcrypto.so
 %{_libdir}/aws-lc/libssl.so
+%if %{with rust_bindings}
+%{_includedir}/aws-lc/rust_wrapper.h
 %dir %{_datadir}/rust
 %{_datadir}/rust/aws_lc_bindings.rs
+%endif
 
 %package provider
 Summary: AWS-LC provider for OpenSSL
